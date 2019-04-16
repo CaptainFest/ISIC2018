@@ -226,7 +226,7 @@ class UNet16(nn.Module):
         center = self.center(self.pool(conv5))
 
         center_conv = self.center_Conv2d(center)
-        x_out_empty_ind1 = nn.AvgPool2d(kernel_size=center_conv.size()[2:])(center_conv)
+        x_out_empty_ind1 = nn.AvgPool2d(kernel_size=center.size()[2:])(center)
         x_out_empty_ind1 = torch.squeeze(x_out_empty_ind1)
 
         dec5 = self.dec5(torch.cat([center, conv5], 1))

@@ -2,6 +2,7 @@ import os
 from torch.utils.data import Dataset
 from PIL import Image
 import numpy as np
+import typing
 
 def fill_up(arr):
     h,w,ch = arr.shape
@@ -40,16 +41,26 @@ def mask_2_channels(z):
     blue = (z[:,:,0] == 0) & (z[:,:,1] == 0) & (z[:,:,2] == 255)
     return np.stack([red, yellow, green, cyan, blue], axis=-1) * 1
 
-class CustomDataset(Dataset):
-    def __init__(self, data_path, mask_path):
-        def get_idx(img_name): return int(img_name.split('.')[0].split('_')[1])
-        def get_files(fp): return map(lambda x: os.path.join(fp, x), sorted(os.listdir(fp), key=get_idx))
-        self.pairs = list(zip(get_files(data_path), get_files(mask_path)))
+def get_all_pairs(data_path, mask_path):
+    def get_idx(img_name): return int(img_name.split('.')[0].split('_')[1])
+    def get_files(fp): return map(lambda x: os.path.join(fp, x), sorted(os.listdir(fp), key=get_idx))
+    return list(zip(get_files(data_path), get_files(mask_path)))
 
-    def __len__(self): return len(self.pairs)
+class CustomDataset(Dataset):
+    def __init__(self, all_pairs, indices: typing.List, test_mode = False):
+        self.pairs = all_pairs
+        self.indices = {i: idx for i, idx in enumerate(sorted(indices))}
+        self.test_mode = test_mode
+
+    def __len__(self): return len(self.indices)
 
     def __getitem__(self, idx):
-        pair = self.pairs[idx]
+        true_index = self.indices[idx]
+        pair = self.pairs[true_index]
         img = np.rollaxis(center_crop(fill_up(np.array(Image.open(pair[0])))), 2, 0) / 255.
-        mask = np.rollaxis(center_crop(fill_up(mask_2_channels(np.array(Image.open(pair[1]))))), 2, 0)
-        return img, mask
+        if self.test_mode:
+            return true_index, img
+        else:
+            mask = np.rollaxis(center_crop(fill_up(mask_2_channels(np.array(Image.open(pair[1]))))), 2, 0)
+            return img, mask
+
