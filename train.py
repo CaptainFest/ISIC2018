@@ -27,6 +27,7 @@ from validation import validation_binary
 from transforms import DualCompose,ImageOnly,Normalize,HorizontalFlip,VerticalFlip
 from metrics import AllInOneMeter
 
+import load_weights
 
 def get_split(train_test_split_file='./data/train_test_id.pickle'):
     with open(train_test_split_file,'rb') as f:
@@ -106,7 +107,7 @@ def main():
 
     ## load pretrained model
     if args.model_weight is not None:
-        state = torch.load(args.model_weight)
+        state = load_weights(args.model_weight)
         #epoch = state['epoch']
         #step = state['step']
         model.load_state_dict(state['model'])
