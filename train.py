@@ -26,6 +26,7 @@ from transforms import DualCompose,ImageOnly,Normalize,HorizontalFlip,VerticalFl
 from metrics import AllInOneMeter
 
 import load_weights
+import pandas as pd
 
 def main():
     parser = argparse.ArgumentParser()
@@ -127,7 +128,7 @@ def main():
     cudnn.benchmark = True
 
     ## get train_test_id
-    train_test_id = get_split()
+    train_test_id = pd.read_csv('train_test_id.csv')
 
     ## train vs. val
     print('--' * 10)

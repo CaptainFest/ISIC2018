@@ -9,6 +9,7 @@ from torchvision import transforms
 import torchvision.transforms.functional as TF
 from torch import nn
 from keras.preprocessing.image import array_to_img, img_to_array
+import pandas as pd
 
 
 class SkinDataset(Dataset):
@@ -28,9 +29,7 @@ class SkinDataset(Dataset):
         self.transform = transform
         self.num_classes = num_classes
 
-        with open('/media/eric/SSD2/Project/11_ISCB2018/2_Analysis/20180516_classification_segmentation/train_test_id.pickle',
-                'rb') as f:
-            self.mask_ind = pickle.load(f)
+        self.mask_ind = pd.read_csv('mask_ind.csv')
 
         ## subset the data by mask type
         if self.attribute is not None and self.attribute != 'all':
@@ -40,9 +39,11 @@ class SkinDataset(Dataset):
             print('mask type: ', self.mask_attr, 'train_test_id.shape: ', self.train_test_id.shape)
         ## subset the data by train test split
         if self.train:
+            self.mask_ind = self.mask_ind[self.train_test_id['Split'] == 'train'].values.astype('uint8')
             self.train_test_id = self.train_test_id[self.train_test_id['Split'] == 'train'].ID.values
             print('Train =', self.train, 'train_test_id.shape: ', self.train_test_id.shape)
         else:
+            self.mask_ind = self.mask_ind[self.train_test_id['Split'] != 'train'].values.astype('uint8')
             self.train_test_id = self.train_test_id[self.train_test_id['Split'] != 'train'].ID.values
             print('Train =', self.train, 'train_test_id.shape: ', self.train_test_id.shape)
         self.n = self.train_test_id.shape[0]
@@ -213,7 +214,7 @@ class SkinDataset(Dataset):
         # std  = np.array([0.229, 0.224, 0.225])
         # img_np = (img_np - mean) / std
         img_np = img_np.astype('float32')
-        ind = self.mask_ind.loc[index, self.attr_types].values.astype('uint8')
+        ind = self.mask_ind[index, :]
         #ind = np.array(ind)
         #print(ind)
         #print(ind.shape)
@@ -238,7 +239,7 @@ def load_mask(image_path, img_id, attribute='pigment_network'):
         f = h5py.File(mask_file, 'r')
         mask_np = f['img'].value
     else:
-        mask_file = image_path + '%s_attribute_%s.h5' % (img_id, mask_attr)
+        mask_file = image_path + '%s_attribute_%s.h5' % (img_id, attribute)
         f = h5py.File(mask_file, 'r')
         mask_np = f['img'].value
 
