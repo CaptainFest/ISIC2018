@@ -71,12 +71,41 @@ def write_event(log, step, epoch, train_metrics, valid_metrics):
     # log.write('\n')
     # log.flush()
     #print(data['loss'])
-    CMD = 'epoch:{} step:{} time:{:.2f} train_loss:{:.3f} {:.3f} {:.3f} {:.3f} train_auc1:{} {} {} {} {} train_auc2:{} {} {} {} {} train_jaccard:{:.3f} {:.3f} {:.3f} {:.3f} {:.3f} {:.3f} \n valid_loss:{:.3f} {:.3f} {:.3f} {:.3f} valid_auc1:{} {} {} {} {} valid_auc2:{} {} {} {} {} valid_jaccard:{:.3f} {:.3f} {:.3f} {:.3f} {:.3f} {:.3f}'.format(
+    CMD = 'epoch:{} step:{} time:{:.2f} \n train_loss:{:.3f} {:.3f} {:.3f} {:.3f} train_auc1:{} {} {} {} {} train_auc2:{} {} {} {} {} train_jaccard:{:.3f} {:.3f} {:.3f} {:.3f} {:.3f} {:.3f} \n valid_loss:{:.3f} {:.3f} {:.3f} {:.3f} valid_auc1:{} {} {} {} {} valid_auc2:{} {} {} {} {} valid_jaccard:{:.3f} {:.3f} {:.3f} {:.3f} {:.3f} {:.3f}'.format(
         epoch, step, train_metrics['epoch_time'],
         train_metrics['loss'],train_metrics['loss1'],train_metrics['loss2'],train_metrics['loss3'],
         train_metrics['out1auc1'],train_metrics['out1auc2'],train_metrics['out1auc3'],train_metrics['out1auc4'],train_metrics['out1auc5'],
         train_metrics['out2auc1'],train_metrics['out2auc2'],train_metrics['out2auc3'],train_metrics['out2auc4'],train_metrics['out2auc5'],
         train_metrics['jaccard'],train_metrics['jaccard1'],train_metrics['jaccard2'],train_metrics['jaccard3'],train_metrics['jaccard4'],train_metrics['jaccard5'],
+        valid_metrics['loss'], valid_metrics['loss1'], valid_metrics['loss2'], valid_metrics['loss3'],
+        valid_metrics['out1auc1'], valid_metrics['out1auc2'], valid_metrics['out1auc3'], valid_metrics['out1auc4'],
+        valid_metrics['out1auc5'],
+        valid_metrics['out2auc1'], valid_metrics['out2auc2'], valid_metrics['out2auc3'], valid_metrics['out2auc4'],
+        valid_metrics['out2auc5'],
+        valid_metrics['jaccard'],valid_metrics['jaccard1'],valid_metrics['jaccard2'],valid_metrics['jaccard3'],valid_metrics['jaccard4'],valid_metrics['jaccard5'],
+    )
+    print(CMD)
+    log.write(json.dumps(CMD))
+    # log.write(json.dumps(valid_metrics, sort_keys=True))
+    log.write('\n')
+    log.flush()
+    #for keys in sorted(train_metrics):
+     #   print('{}:{}'.format(keys,train_metrics[keys]))
+
+def write_valid_event(log, step, epoch, valid_metrics):
+    # train_metrics['step'] = step
+    # train_metrics['epoch'] = epoch
+    # train_metrics['valid_metrics'] = step
+    # train_metrics['valid_metrics'] = epoch
+    # train_metrics['dt'] = datetime.now().isoformat()
+    # valid_metrics['dt'] = datetime.now().isoformat()
+    # log.write(json.dumps(train_metrics, sort_keys=True))
+    # log.write(json.dumps(valid_metrics, sort_keys=True))
+    # log.write('\n')
+    # log.flush()
+    #print(data['loss'])
+    CMD = 'epoch:{} step:{} valid_loss:{:.3f} {:.3f} {:.3f} {:.3f} valid_auc1:{} {} {} {} {} valid_auc2:{} {} {} {} {} valid_jaccard:{:.3f} {:.3f} {:.3f} {:.3f} {:.3f} {:.3f}'.format(
+        epoch, step,
         valid_metrics['loss'], valid_metrics['loss1'], valid_metrics['loss2'], valid_metrics['loss3'],
         valid_metrics['out1auc1'], valid_metrics['out1auc2'], valid_metrics['out1auc3'], valid_metrics['out1auc4'],
         valid_metrics['out1auc5'],
