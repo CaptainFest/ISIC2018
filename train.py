@@ -25,6 +25,7 @@ from prepare_train_val import get_split
 from transforms import DualCompose,ImageOnly,Normalize,HorizontalFlip,VerticalFlip
 from metrics import AllInOneMeter
 
+import load_weights
 
 def main():
     parser = argparse.ArgumentParser()
@@ -87,7 +88,7 @@ def main():
 
     ## load pretrained model
     if args.model_weight is not None:
-        state = torch.load(args.model_weight)
+        state = load_weights(args.model_weight)
         #epoch = state['epoch']
         #step = state['step']
         model.load_state_dict(state['model'])
