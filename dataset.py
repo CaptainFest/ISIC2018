@@ -1,23 +1,25 @@
-## python
 import h5py
 import random
 import torch
 import numpy as np
 import pickle
-
-## pytorch
 from torch.utils.data import Dataset
 from torch.utils.data import DataLoader
 from torchvision import transforms
 import torchvision.transforms.functional as TF
 from torch import nn
-from tensorflow.keras.preprocessing.image import ImageDataGenerator, array_to_img, img_to_array, load_img
+from keras.preprocessing.image import array_to_img, img_to_array
+import pandas as pd
 
 
 class SkinDataset(Dataset):
-    def __init__(self, train_test_id, image_path, train_test_split_file='./data/train_test_id.pickle', 
-                     train=True, attribute=None, transform=None, num_classes=None):
-        
+    def __init__(self, train_test_id, image_path, train=True, attribute=None, transform=None, num_classes=None):
+        """
+        1. Store all meaningful arguments to the constructor here for debugging.
+        2. Do most of the heavy-lifting like downloading the dataset, checking for consistency of already existing dataset etc. here
+        3. Aspire to store just the sufficient number of variables for usage in other member methods. Keeps the memory footprint low.
+        4. For any further derived classes, this is the place to apply any pre-computed transforms over the sufficient variables (e.g. building a paired dataset from a dataset of singleton images)
+        """
         self.train_test_id = train_test_id
         self.image_path = image_path
         self.train = train
@@ -27,8 +29,7 @@ class SkinDataset(Dataset):
         self.transform = transform
         self.num_classes = num_classes
 
-        with open(train_test_split_file, 'rb') as f:
-            self.mask_ind = pickle.load(f)
+        self.mask_ind = pd.read_csv('mask_ind.csv')
 
         ## subset the data by mask type
         if self.attribute is not None and self.attribute != 'all':
@@ -38,14 +39,23 @@ class SkinDataset(Dataset):
             print('mask type: ', self.mask_attr, 'train_test_id.shape: ', self.train_test_id.shape)
         ## subset the data by train test split
         if self.train:
+            self.mask_ind = self.mask_ind[self.train_test_id['Split'] == 'train'].values.astype('uint8')
             self.train_test_id = self.train_test_id[self.train_test_id['Split'] == 'train'].ID.values
             print('Train =', self.train, 'train_test_id.shape: ', self.train_test_id.shape)
         else:
+            self.mask_ind = self.mask_ind[self.train_test_id['Split'] != 'train'].values.astype('uint8')
             self.train_test_id = self.train_test_id[self.train_test_id['Split'] != 'train'].ID.values
             print('Train =', self.train, 'train_test_id.shape: ', self.train_test_id.shape)
         self.n = self.train_test_id.shape[0]
 
     def __len__(self):
+        """
+        This function gets called with len()
+
+        1. The length should be a deterministic function of some instance variables and should be a non-ambiguous representation of the total sample count. This gets tricky especially when certain samples are randomly generated, be careful
+        2. This method should be O(1) and contain no heavy-lifting. Ideally, just return a pre-computed variable during the constructor call.
+        3. Make sure to override this method in further derived classes to avoid unexpected samplings.
+        """
         return self.n
 
 
@@ -57,7 +67,7 @@ class SkinDataset(Dataset):
             ## Input type float32 is not supported
 
             ##!!!
-            ## the preprocess funcions from Keras are very convenient
+            ## the preprocess funcions from Keras are very convient
             ##!!!
 
             # Resize
@@ -182,6 +192,13 @@ class SkinDataset(Dataset):
         return image, mask
 
     def __getitem__(self, index):
+        """
+        1. Make appropriate assertions on the "index" argument. Python allows slices as well, so it is important to be clear of what arguments to support. Just supporting integer indices works well most of the times.
+        2. This is the place to load large data on-demand. DONOT ever load all data in the constructor as that unnecessarily bloats memory.
+        3. This method should be as fast as possible and should only be using certain pre-computed values. e.g. When loading images, the path directory should be handled during the constructor and this method should only load the file into memory and apply relevant transforms.
+        4. Whenever lazy loading is possible, this is the place to be. e.g. Loading images only when called should be here. Keeps the memory footprint low.
+        5. Subsequently, this also becomes the place for any input transforms (like resizing, cropping, conversion to tensor and so on)
+        """
         img_id = self.train_test_id[index]
 
         ### load image
@@ -190,9 +207,6 @@ class SkinDataset(Dataset):
         ### load masks
         mask_np = load_mask(self.image_path, img_id, self.attribute)
 
-        ###
-        #print(img_id,img_np.shape,mask_np.shape)
-
         if self.train:
             img_np, mask_np = self.transform_fn(img_np, mask_np)
 
@@ -200,7 +214,7 @@ class SkinDataset(Dataset):
         # std  = np.array([0.229, 0.224, 0.225])
         # img_np = (img_np - mean) / std
         img_np = img_np.astype('float32')
-        ind = self.mask_ind.loc[index, self.attr_types].values.astype('uint8')
+        ind = self.mask_ind[index, :]
         #ind = np.array(ind)
         #print(ind)
         #print(ind.shape)
@@ -214,7 +228,7 @@ class SkinDataset(Dataset):
 
 def load_image(image_file):
     f = h5py.File(image_file, 'r')
-    img_np = f['img'][()]
+    img_np = f['img'].value
     img_np = (img_np / 255.0).astype('float32')
     return img_np
 
@@ -223,24 +237,23 @@ def load_mask(image_path, img_id, attribute='pigment_network'):
     if attribute == 'all':
         mask_file = image_path + '%s_attribute_all.h5' % (img_id)
         f = h5py.File(mask_file, 'r')
-        mask_np = f['img'][()]
+        mask_np = f['img'].value
     else:
-        mask_file = image_path + '%s_attribute_%s.h5' % (img_id, mask_attr)
+        mask_file = image_path + '%s_attribute_%s.h5' % (img_id, attribute)
         f = h5py.File(mask_file, 'r')
-        mask_np = f['img'][()]
+        mask_np = f['img'].value
 
     mask_np = mask_np.astype('uint8')
     return mask_np
 
 
-def make_loader(train_test_id, image_path, args, train=True, shuffle=True, transform=None,train_test_split_file='./data/train_test_id.pickle', ):
+def make_loader(train_test_id, image_path, args, train=True, shuffle=True, transform=None):
     data_set = SkinDataset(train_test_id=train_test_id,
                            image_path=image_path,
                            train=train,
                            attribute=args.attribute,
                            transform=transform,
-                           num_classes=args.num_classes,
-                           train_test_split_file=train_test_split_file)
+                           num_classes=args.num_classes)
     data_loader = DataLoader(data_set,
                              batch_size=args.batch_size,
                              shuffle=shuffle,
