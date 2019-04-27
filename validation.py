@@ -23,8 +23,11 @@ def validation_binary(model: nn.Module, criterion, valid_loader, device, num_cla
         w1 = 1.0
         w2 = 0.5
         w3 = 0.5
+        i = 0; n = len(valid_loader)
         for valid_image, valid_mask, valid_mask_ind in valid_loader:
-            valid_image = valid_image.to(device)  # [N, 1, H, W]
+            i = i+1
+            print(f'\rBatch {i} out of {n}', end='')
+            valid_image = valid_image.to(device).type(torch.cuda.FloatTensor)  # [N, 1, H, W]
             valid_mask  = valid_mask.to(device).type(torch.cuda.FloatTensor)
             valid_image = valid_image.permute(0, 3, 1, 2)
             valid_mask  = valid_mask.permute(0, 3, 1, 2)
@@ -55,6 +58,7 @@ def validation_binary(model: nn.Module, criterion, valid_loader, device, num_cla
             #jaccard += [get_jaccard(valid_mask, (valid_prob > 0).float()).item()]
             meter.add(valid_prob, valid_mask, valid_mask_ind_prob1, valid_mask_ind_prob2, valid_mask_ind,
                       loss1.item(), loss2.item(), loss3.item(), loss.item())
+        print('\n')
 
         valid_metrics = meter.value()
         epoch_time = time.time() - start_time
