@@ -92,7 +92,7 @@ def write_event(log, step, epoch, train_metrics, valid_metrics):
     #for keys in sorted(train_metrics):
      #   print('{}:{}'.format(keys,train_metrics[keys]))
 
-def write_valid_event(log, step, epoch, valid_metrics):
+def write_valid_event(log, valid_metrics):
     # train_metrics['step'] = step
     # train_metrics['epoch'] = epoch
     # train_metrics['valid_metrics'] = step
@@ -104,8 +104,7 @@ def write_valid_event(log, step, epoch, valid_metrics):
     # log.write('\n')
     # log.flush()
     #print(data['loss'])
-    CMD = 'epoch:{} step:{} valid_loss:{:.3f} {:.3f} {:.3f} {:.3f} valid_auc1:{} {} {} {} {} valid_auc2:{} {} {} {} {} valid_jaccard:{:.3f} {:.3f} {:.3f} {:.3f} {:.3f} {:.3f}'.format(
-        epoch, step,
+    CMD = 'valid_loss:{:.3f} {:.3f} {:.3f} {:.3f} valid_auc1:{} {} {} {} {} valid_auc2:{} {} {} {} {} valid_jaccard:{:.3f} {:.3f} {:.3f} {:.3f} {:.3f} {:.3f}'.format(
         valid_metrics['loss'], valid_metrics['loss1'], valid_metrics['loss2'], valid_metrics['loss3'],
         valid_metrics['out1auc1'], valid_metrics['out1auc2'], valid_metrics['out1auc3'], valid_metrics['out1auc4'],
         valid_metrics['out1auc5'],
