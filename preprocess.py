@@ -6,10 +6,10 @@ import h5py
 from joblib import Parallel, delayed
 import os
 
-mask_path = '/home/ge209/Documents/Data/ISIC_2018_feature_segm/ISIC2018_Task2_Training_GroundTruth_v3/'
-image_path = '/home/ge209/Documents/Data/ISIC_2018_feature_segm/ISIC2018_Task1-2_Training_Input/'
+mask_path = "/home/irek/My_work/train/binary/"
+image_path = "/home/irek/My_work/train/data/"
 
-save_path = '/home/ge209/Documents/Data/ISIC_2018_feature_segm/h5/'
+save_path = "/home/irek/My_work/train/h5/"
 if not os.path.exists(save_path): os.mkdir(save_path)
 
 
@@ -35,11 +35,11 @@ def load_image(ind,img_id):
         m = load_img(mask_file, target_size=(512,512), grayscale=True)  # this is a PIL image
         m_np = img_to_array(m)
         masks[:, :, i] = m_np[:, :, 0]
-        m_np = m_np[:, :, 0, np.newaxis]
-        m_np = (m_np / 255).astype('int8')
-        hdf5_file = h5py.File(save_path + '%s_attribute_%s.h5' % (img_id, attr), 'w')
-        hdf5_file.create_dataset('img', data=m_np, dtype=np.int8)
-        hdf5_file.close()
+        #m_np = m_np[:, :, 0, np.newaxis]
+        #m_np = (m_np / 255).astype('int8')
+        #hdf5_file = h5py.File(save_path + '%s_attribute_%s.h5' % (img_id, attr), 'w')
+        #hdf5_file.create_dataset('img', data=m_np, dtype=np.int8)
+        #hdf5_file.close()
     masks = (masks / 255).astype('int8')
     hdf5_file = h5py.File(save_path + '%s_attribute_all.h5' % (img_id), 'w')
     hdf5_file.create_dataset('img', data=masks, dtype=np.int8)

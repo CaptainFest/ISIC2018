@@ -49,8 +49,8 @@ def validation_binary(model: nn.Module, criterion, valid_loader, device, num_cla
             # weight[:, 4] = weight[:, 4] * 4
             # weight = weight * valid_mask_ind + 1
             # weight = weight.to(device).type(torch.cuda.FloatTensor)
-            loss2 = F.binary_cross_entropy_with_logits(outputs_mask_ind1, valid_mask_ind)
-            loss3 = F.binary_cross_entropy_with_logits(outputs_mask_ind2, valid_mask_ind)
+            loss2 = F.binary_cross_entropy_with_logits(outputs_mask_ind1, valid_mask_ind[0])
+            loss3 = F.binary_cross_entropy_with_logits(outputs_mask_ind2, valid_mask_ind[0])
             loss = loss1 * w1 + loss2 * w2 + loss3 * w3
 
             #losses1.append(loss1.item())
