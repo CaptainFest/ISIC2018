@@ -49,16 +49,15 @@ def main():
     arg = parser.add_argument
     arg('--jaccard-weight', type=float, default=1)
     arg('--root', type=str, default='runs/debug', help='checkpoint root')
-    arg('--image-path', type=str, default='data', help='image path')
+    arg('--image-path', type=str, default='/home/irek/My_work/train/h5/', help='image path')
     arg('--batch-size', type=int, default=16)
-    arg('--workers', type=int, default=10)
-    arg('--model', type=str, default='UNet16', choices=['UNet', 'UNet11', 'UNet16', 'UNet16BN', 'LinkNet34'])
+    arg('--workers', type=int, default=1)
+    arg('--model', type=str, default='UNet16BN', choices=['UNet', 'UNet11', 'UNet16', 'UNet16BN', 'LinkNet34'])
     arg('--model-weight', type=str, default=None)
     arg('--attribute', type=str, default='all', choices=['pigment_network', 'negative_network',
                                                               'streaks', 'milia_like_cyst',
                                                               'globules', 'all'])
     args = parser.parse_args()
-
 
     ## folder for checkpoint
     root = Path(args.root)
@@ -77,7 +76,8 @@ def main():
         json.dumps(vars(args), indent=True, sort_keys=True))
 
     ## load pretrained model
-    model = get_model(args.model, num_classes)
+    model = UNet16BN(num_classes=num_classes, pretrained='vgg')
+    #get_model(args.model, num_classes)
 
     ## load pretrained model
     model_weight = args.model_weight
