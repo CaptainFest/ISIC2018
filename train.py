@@ -25,19 +25,21 @@ from prepare_train_val import get_split
 from transforms import DualCompose,ImageOnly,Normalize,HorizontalFlip,VerticalFlip
 from metrics import AllInOneMeter
 
+import load_weights
+import pandas as pd
 
 def main():
     parser = argparse.ArgumentParser()
     arg = parser.add_argument
     arg('--jaccard-weight', type=float, default=1)
     arg('--root', type=str, default='runs/debug', help='checkpoint root')
-    arg('--image-path', type=str, default='data', help='image path')
-    arg('--batch-size', type=int, default=16)
-    arg('--n-epochs', type=int, default=100)
+    arg('--image-path', type=str, default='/home/irek/My_work/train/h5/', help='image path')
+    arg('--batch-size', type=int, default=1)
+    arg('--n-epochs', type=int, default=300)
     arg('--optimizer', type=str, default='Adam', help='Adam or SGD')
     arg('--lr', type=float, default=0.001)
-    arg('--workers', type=int, default=10)
-    arg('--model', type=str, default='UNet16', choices=['UNet', 'UNet11', 'UNet16', 'UNet16BN', 'LinkNet34'])
+    arg('--workers', type=int, default=1)
+    arg('--model', type=str, default='UNet16BN', choices=['UNet', 'UNet11', 'UNet16', 'UNet16BN', 'LinkNet34'])
     arg('--model-weight', type=str, default=None)
     arg('--resume-path', type=str, default=None)
     arg('--attribute', type=str, default='all', choices=['pigment_network', 'negative_network',
@@ -87,7 +89,7 @@ def main():
 
     ## load pretrained model
     if args.model_weight is not None:
-        state = torch.load(args.model_weight)
+        state = load_weights(args.model_weight)
         #epoch = state['epoch']
         #step = state['step']
         model.load_state_dict(state['model'])
@@ -95,21 +97,6 @@ def main():
         print('Load pretrained model', args.model_weight)
         #print('Restored model, epoch {}, step {:,}'.format(epoch, step))
         print('--' * 10)
-        ## replace the last layer
-        ## although the model and pre-trained weight have differernt size (the last layer is different)
-        ## pytorch can still load the weight
-        ## I found that the weight for one layer just duplicated for all layers
-        ## therefore, the following code is not necessary
-        # if args.attribute == 'all':
-        #     model = list(model.children())[0]
-        #     num_filters = 32
-        #     model.final = nn.Conv2d(num_filters, num_classes, kernel_size=1)
-        #     print('--' * 10)
-        #     print('Load pretrained model and replace the last layer', args.model_weight, num_classes)
-        #     print('--' * 10)
-        #     if torch.cuda.device_count() > 1:
-        #         model = nn.DataParallel(model)
-        #     model.to(device)
 
     ## model summary
     print_model_summay(model)
@@ -117,16 +104,10 @@ def main():
     ## define loss
     loss_fn = LossBinary(jaccard_weight=args.jaccard_weight)
 
-
-    ## It enables benchmark mode in cudnn.
-    ## benchmark mode is good whenever your input sizes for your network do not vary. This way, cudnn will look for the
-    ## optimal set of algorithms for that particular configuration (which takes some time). This usually leads to faster runtime.
-    ## But if your input sizes changes at each iteration, then cudnn will benchmark every time a new size appears,
-    ## possibly leading to worse runtime performances.
     cudnn.benchmark = True
 
     ## get train_test_id
-    train_test_id = get_split()
+    train_test_id = pd.read_csv('train_test_id.csv')
 
     ## train vs. val
     print('--' * 10)
@@ -229,11 +210,14 @@ def main():
         try:
             train_loss = 0
             valid_loss = 0
-            # if epoch == 1:
-            #     freeze_layer_names = get_freeze_layer_names(model, part='encoder')
-            #     set_freeze_layers(model, freeze_layer_names=freeze_layer_names)
-            #     #set_train_layers(model, train_layer_names=['module.final.weight','module.final.bias'])
-            #     print_model_summay(model)
+            if epoch < 50:
+                freeze_layer_names = get_freeze_layer_names(model, part='encoder')
+                set_freeze_layers(model, freeze_layer_names=freeze_layer_names)
+                set_train_layers(model, train_layer_names=['module.final.weight','module.final.bias'])
+                print_model_summay(model)
+            else:
+                set_freeze_layers(model, freeze_layer_names=None)
+                print_model_summay(model)
             # elif epoch == 5:
             #     w1 = 1.0
             #     w2 = 0.0
@@ -254,7 +238,7 @@ def main():
             #                                                'module.dec1.conv.weight','module.dec1.conv.bias',
             #                                                'module.final.weight','module.final.bias'])
             #     print_model_summa zvgf    t5y(model)
-            # elif epoch == 50:
+            #else epoch == 50:
             #     set_freeze_layers(model, freeze_layer_names=None)
             #     print_model_summay(model)
             for i, (train_image, train_mask, train_mask_ind) in enumerate(train_loader):
@@ -299,8 +283,9 @@ def main():
                 #weight[:, 4] = weight[:, 4] * 4
                 #weight = weight * train_mask_ind + 1
                 #weight = weight.to(device).type(torch.cuda.FloatTensor)
-                loss2 = F.binary_cross_entropy_with_logits(outputs_mask_ind1, train_mask_ind)
-                loss3 = F.binary_cross_entropy_with_logits(outputs_mask_ind2, train_mask_ind)
+
+                loss2 = F.binary_cross_entropy_with_logits(outputs_mask_ind1, train_mask_ind[0])
+                loss3 = F.binary_cross_entropy_with_logits(outputs_mask_ind2, train_mask_ind[0])
                 #loss3 = criterion(outputs_mask_ind2, train_mask_ind)
                 loss = loss1*w1 + loss2*w2 + loss3*w3
                 #print(loss1.item(), loss2.item(), loss.item())
@@ -309,7 +294,7 @@ def main():
                 optimizer.step()
                 step += 1
                 #jaccard += [get_jaccard(train_mask, (train_prob > 0).float()).item()]
-                meter.add(train_prob, train_mask, train_mask_ind_prob1, train_mask_ind_prob2, train_mask_ind,
+                meter.add(train_prob, train_mask, train_mask_ind_prob1, train_mask_ind_prob2, train_mask_ind[0],
                           loss1.item(),loss2.item(),loss3.item(),loss.item())
                 # print(train_mask.data.shape)
                 # print(train_mask.data.sum(dim=-2).shape)
