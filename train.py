@@ -21,7 +21,6 @@ from loss import LossBinary
 from dataset import make_loader
 from utils import save_weights, write_event, write_tensorboard,print_model_summay,set_freeze_layers,set_train_layers,get_freeze_layer_names
 from validation import validation_binary
-from prepare_train_val import get_split
 from transforms import DualCompose,ImageOnly,Normalize,HorizontalFlip,VerticalFlip
 from metrics import AllInOneMeter
 
@@ -194,14 +193,14 @@ def main():
     log = root.joinpath('train.log').open('at', encoding='utf8')
     writer = SummaryWriter()
     meter = AllInOneMeter()
-    #if previous_valid_loss = 10000
+
     print('Start training')
     print_model_summay(model)
     previous_valid_jaccard = 0
     for epoch in range(epoch, args.n_epochs + 1):
         model.train()
         random.seed()
-        #jaccard = []
+
         start_time = time.time()
         meter.reset()
         w1 = 1.0
@@ -210,79 +209,27 @@ def main():
         try:
             train_loss = 0
             valid_loss = 0
-            if epoch < 50:
+            if epoch == 1:
                 freeze_layer_names = get_freeze_layer_names(model, part='encoder')
                 set_freeze_layers(model, freeze_layer_names=freeze_layer_names)
-                set_train_layers(model, train_layer_names=['module.final.weight','module.final.bias'])
                 print_model_summay(model)
-            else:
-                set_freeze_layers(model, freeze_layer_names=None)
-                print_model_summay(model)
-            # elif epoch == 5:
-            #     w1 = 1.0
-            #     w2 = 0.0
-            #     w3 = 0.5
-            #     freeze_layer_names = get_freeze_layer_names(part='encoder')
-            #     set_freeze_layers(model, freeze_layer_names=freeze_layer_names)
-            #     # set_train_layers(model, train_layer_names=['module.final.weight','module.final.bias'])
-            #     print_model_summay(model)
-            #elif epoch == 3:
-            #     set_train_layers(model, train_layer_names=['module.dec5.block.0.conv.weight','module.dec5.block.0.conv.bias',
-            #                                                'module.dec5.block.1.weight','module.dec5.block.1.bias',
-            #                                                'module.dec4.block.0.conv.weight','module.dec4.block.0.conv.bias',
-            #                                                'module.dec4.block.1.weight','module.dec4.block.1.bias',
-            #                                                'module.dec3.block.0.conv.weight','module.dec3.block.0.conv.bias',
-            #                                                'module.dec3.block.1.weight','module.dec3.block.1.bias',
-            #                                                'module.dec2.block.0.conv.weight','module.dec2.block.0.conv.bias',
-            #                                                'module.dec2.block.1.weight','module.dec2.block.1.bias',
-            #                                                'module.dec1.conv.weight','module.dec1.conv.bias',
-            #                                                'module.final.weight','module.final.bias'])
-            #     print_model_summa zvgf    t5y(model)
-            #else epoch == 50:
-            #     set_freeze_layers(model, freeze_layer_names=None)
-            #     print_model_summay(model)
+            elif epoch == 50:
+                 set_freeze_layers(model, freeze_layer_names=None)
+                 print_model_summay(model)
             for i, (train_image, train_mask, train_mask_ind) in enumerate(train_loader):
-                # inputs, targets = variable(inputs), variable(targets)
 
                 train_image = train_image.permute(0, 3, 1, 2)
                 train_mask = train_mask.permute(0, 3, 1, 2)
                 train_image = train_image.to(device)
                 train_mask = train_mask.to(device).type(torch.cuda.FloatTensor)
                 train_mask_ind = train_mask_ind.to(device).type(torch.cuda.FloatTensor)
-                # if args.problem_type == 'binary':
-                #     train_mask = train_mask.to(device).type(torch.cuda.FloatTensor)
-                # else:
-                #     #train_mask = train_mask.to(device).type(torch.cuda.LongTensor)
-                #     train_mask = train_mask.to(device).type(torch.cuda.FloatTensor)
 
                 outputs, outputs_mask_ind1, outputs_mask_ind2 = model(train_image)
-                #print('outputs_mask_ind1.size()',outputs_mask_ind1.size())
-                #print('train_mask_ind.size()', train_mask_ind.size())
-                ### note that the last layer in the model is defined differently
-                # if args.problem_type == 'binary':
-                #     train_prob = F.sigmoid(outputs)
-                #     loss = criterion(outputs, train_mask)
-                # else:
-                #     #train_prob = outputs
-                #     train_prob = F.sigmoid(outputs)
-                #     loss = torch.tensor(0).type(train_mask.type())
-                #     for feat_inx in range(train_mask.shape[1]):
-                #         loss += criterion(outputs, train_mask)
+
                 train_prob = F.sigmoid(outputs)
                 train_mask_ind_prob1 = F.sigmoid(outputs_mask_ind1)
                 train_mask_ind_prob2 = F.sigmoid(outputs_mask_ind2)
                 loss1 = criterion(outputs, train_mask)
-                #loss1 = F.binary_cross_entropy_with_logits(outputs, train_mask)
-                #loss2 = nn.BCEWithLogitsLoss()(outputs_mask_ind1, train_mask_ind)
-                #print(train_mask_ind.size())
-                #weight = torch.ones_like(train_mask_ind)
-                #weight[:, 0] = weight[:, 0] * 1
-                #weight[:, 1] = weight[:, 1] * 14
-                #weight[:, 2] = weight[:, 2] * 14
-                #weight[:, 3] = weight[:, 3] * 4
-                #weight[:, 4] = weight[:, 4] * 4
-                #weight = weight * train_mask_ind + 1
-                #weight = weight.to(device).type(torch.cuda.FloatTensor)
 
                 loss2 = F.binary_cross_entropy_with_logits(outputs_mask_ind1, train_mask_ind[0])
                 loss3 = F.binary_cross_entropy_with_logits(outputs_mask_ind2, train_mask_ind[0])
@@ -293,18 +240,10 @@ def main():
                 loss.backward()
                 optimizer.step()
                 step += 1
-                #jaccard += [get_jaccard(train_mask, (train_prob > 0).float()).item()]
+
                 meter.add(train_prob, train_mask, train_mask_ind_prob1, train_mask_ind_prob2, train_mask_ind[0],
                           loss1.item(),loss2.item(),loss3.item(),loss.item())
-                # print(train_mask.data.shape)
-                # print(train_mask.data.sum(dim=-2).shape)
-                # print(train_mask.data.sum(dim=-2).sum(dim=-1).shape)
-                # print(train_mask.data.sum(dim=-2).sum(dim=-1).sum(dim=0).shape)
-                # intersection = train_mask.data.sum(dim=-2).sum(dim=-1)
-                # print(intersection.shape)
-                # print(intersection.dtype)
-                # print(train_mask.data.shape[0])
-                #torch.zeros([2, 4], dtype=torch.float32)
+
             #########################
             ## at the end of each epoch, evualte the metrics
             epoch_time = time.time() - start_time
@@ -314,13 +253,10 @@ def main():
             train_metrics['mask'] = train_mask.data
             train_metrics['prob'] = train_prob.data
 
-            #train_jaccard = np.mean(jaccard)
-            #train_auc = str(round(mtr1.value()[0],2))+' '+str(round(mtr2.value()[0],2))+' '+str(round(mtr3.value()[0],2))+' '+str(round(mtr4.value()[0],2))+' '+str(round(mtr5.value()[0],2))
             valid_metrics = valid_fn(model, criterion, valid_loader, device, num_classes)
             ##############
             ## write events
             write_event(log, step, epoch=epoch, train_metrics=train_metrics, valid_metrics=valid_metrics)
-            #save_weights(model, model_path, epoch + 1, step)
             #########################
             ## tensorboard
             write_tensorboard(writer, model, epoch, train_metrics=train_metrics, valid_metrics=valid_metrics)
