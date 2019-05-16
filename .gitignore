@@ -3,6 +3,3 @@ lib/**
 .idea/**
 .ipynb_checkpoints/**
 *.pyc
-runs/
-share/
-lib64
