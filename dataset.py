@@ -3,8 +3,8 @@ import random
 import torch
 import numpy as np
 
-from torch.utils.data import Dataset
-from torch.utils.data import DataLoader
+from torch.utils.data import Dataset, DataLoader
+from utils import load_image, load_mask
 from torchvision import transforms
 import torchvision.transforms.functional as TF
 from torch import nn
@@ -113,27 +113,6 @@ class SkinDataset(Dataset):
         #print(ind.shape)
 
         return img_np, mask_np, ind
-
-
-def load_image(image_file):
-    f = h5py.File(image_file, 'r')
-    img_np = f['img'].value
-    img_np = (img_np / 255.0).astype('float32')
-    return img_np
-
-
-def load_mask(image_path, img_id, attribute='pigment_network'):
-    if attribute == 'all':
-        mask_file = image_path + '%s_attribute_all.h5' % (img_id)
-        f = h5py.File(mask_file, 'r')
-        mask_np = f['img'].value
-    else:
-        mask_file = image_path + '%s_attribute_%s.h5' % (img_id, attribute)
-        f = h5py.File(mask_file, 'r')
-        mask_np = f['img'].value
-
-    mask_np = mask_np.astype('uint8')
-    return mask_np
 
 
 def make_loader(train_test_id, image_path, args, train=True, shuffle=True, transform=None):

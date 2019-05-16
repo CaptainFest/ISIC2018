@@ -1,66 +1,94 @@
 import os
-from torch.utils.data import Dataset
-from PIL import Image
-import numpy as np
-import typing
 
-def fill_up(arr):
-    h,w,ch = arr.shape
-    if h < 512:
-        dh_top = (512 - h) // 2
-        dh_bottom = 512 - (h - dh_top)
-        v_top = arr[0:1,:,:]
-        v_bottom = arr[-2:-1,:,:]
-        arr = np.concatenate([np.tile(v_top, (dh_top,1,1)),
-             arr,
-             np.tile(v_bottom, (dh_bottom,1,1))],
-            axis=0)
-    if w < 512:
-        dw_left = (512 - w) // 2
-        dw_right = (512 - (w + dw_left))
-        v_left = arr[:,0:1,:]
-        v_right = arr[:,-2:-1,:]
-        arr = np.concatenate([
-            np.tile(v_left, (1,dw_left,1)),
-            arr,
-            np.tile(v_right, (1,dw_right, 1))
-        ], axis=1)
-    return arr
+import torch
+import torchvision.transforms.functional as TF
+from keras.preprocessing.image import array_to_img, img_to_array
+from torch.utils.data import Dataset, DataLoader
+from utils import load_image
+import pandas as pd
+import random
 
-def center_crop(arr):
-    h,w,ch = arr.shape
-    dh = (h - 512) // 2
-    dw = (w - 512) // 2
-    return arr[dh:dh+512, dw:dw+512, :]
 
-def mask_2_channels(z):
-    red = (z[:,:,0] == 255) & (z[:,:,1] == 0) & (z[:,:,2] == 0)
-    yellow = (z[:,:,0] == 255) & (z[:,:,1] == 255) & (z[:,:,2] == 0)
-    green = (z[:,:,0] == 0) & (z[:,:,1] == 255) & (z[:,:,2] == 0)
-    cyan = (z[:,:,0] == 0) & (z[:,:,1] == 255) & (z[:,:,2] == 255)
-    blue = (z[:,:,0] == 0) & (z[:,:,1] == 0) & (z[:,:,2] == 255)
-    return np.stack([red, yellow, green, cyan, blue], axis=-1) * 1
+class MyDataset(Dataset):
 
-def get_all_pairs(data_path, mask_path):
-    def get_idx(img_name): return int(img_name.split('.')[0].split('_')[1])
-    def get_files(fp): return map(lambda x: os.path.join(fp, x), sorted(os.listdir(fp), key=get_idx))
-    return list(zip(get_files(data_path), get_files(mask_path)))
+    def __init__(self, train_test_id, image_path, train, pretrained, augment_list):
 
-class CustomDataset(Dataset):
-    def __init__(self, all_pairs, indices: typing.List, test_mode = False):
-        self.pairs = all_pairs
-        self.indices = {i: idx for i, idx in enumerate(sorted(indices))}
-        self.test_mode = test_mode
+        self.train_test_id = train_test_id
+        self.image_path = image_path
+        self.train = train
+        self.pretrained = pretrained
+        self.augment_list = augment_list
+        self.img_IDs = img_IDs
+        self.mask_ind = pd.read_csv('mask_ind.csv')
 
-    def __len__(self): return len(self.indices)
+    def __len__(self):
+        return len(self.img_IDs)
 
-    def __getitem__(self, idx):
-        true_index = self.indices[idx]
-        pair = self.pairs[true_index]
-        img = np.rollaxis(center_crop(fill_up(np.array(Image.open(pair[0])))), 2, 0) / 255.
-        if self.test_mode:
-            return true_index, img
+    def transform_fn(self, image):
+
+        image_net_mean = (0.485, 0.456, 0.406)
+        image_net_std = (0.229, 0.224, 0.225)
+
+        if self.pretrained:
+            image = TF.normalize(image, image_net_mean, image_net_std)
+
+        image = array_to_img(image, data_format="channels_last")
+        if self.train:
+            if 'hflip' in self.augment_list:
+                if random.random() > 0.5:
+                    image = TF.hflip(image)
+            if 'vflip' in self.augment_list:
+                if random.random() > 0.5:
+                    image = TF.vflip(image)
+            if 'affine' in self.augment_list:
+                if random.random() > 0.5:
+                    angle = random.randint(0, 90)
+                    translate = (random.uniform(0, 100), random.uniform(0, 100))
+                    scale = random.uniform(0.5, 2)
+                    image = TF.affine(image, angle=angle, translate=translate, scale=scale)
+            if 'adjust_brightness' in self.augment_list:
+                if random.random() > 0.5:
+                    brightness_factor = random.uniform(0.8, 1.2)
+                    image = TF.adjust_brightness(image, brightness_factor)
+            if 'adjust_saturation' in self.augment_list:
+                if random.random() > 0.5:
+                    saturation_factor = random.uniform(0.8, 1.2)
+                    image = TF.adjust_saturation(image, saturation_factor)
         else:
-            mask = np.rollaxis(center_crop(fill_up(mask_2_channels(np.array(Image.open(pair[1]))))), 2, 0)
-            return img, mask
+            if self.pretrained:
+                image = TF.normalize(image, image_net_mean, image_net_std)
 
+        image = img_to_array(image, data_format="channels_last")
+        image = (image / 255.0).astype('float32')
+
+        return image
+
+    def __getitem__(self, index):
+        'Generates one sample of data'
+        # Select sample
+        ID = self.img_IDs[index]
+        path = self.image_path
+
+        # Load image from h5
+        image = load_image(os.path.join(path, ID, '.h5'))
+
+        if self.train:
+            image = self.transform_fn(image)
+
+        label = self.labels[ID]
+
+        return image, label
+
+
+def make_loader(train_test_id, image_path, args, train=True, shuffle=True):
+    data_set = MyDataset(train_test_id=train_test_id,
+                         image_path=image_path,
+                         train=train,
+                         pretrained=args.pretrained,
+                         augment_list=args.augment_list)
+    data_loader = DataLoader(data_set,
+                             batch_size=args.batch_size,
+                             shuffle=shuffle,
+                             num_workers=args.workers,
+                             pin_memory=torch.cuda.is_available())
+    return data_loader
