@@ -18,45 +18,41 @@ class MyDataset(Dataset):
         self.train = train
         self.pretrained = pretrained
         self.augment_list = augment_list
-        self.img_IDs = img_IDs
         self.mask_ind = pd.read_csv('mask_ind.csv')
 
+        if self.train:
+            self.train_test_id = self.train_test_id[self.train_test_id['Split'] == 'train'].index.values
+        else:
+            self.train_test_id = self.train_test_id[self.train_test_id['Split'] != 'train'].index.values
+        self.n = train_test_id.shape[0]
+
     def __len__(self):
-        return len(self.img_IDs)
+        return len(self.n)
 
     def transform_fn(self, image):
 
-        image_net_mean = (0.485, 0.456, 0.406)
-        image_net_std = (0.229, 0.224, 0.225)
-
-        if self.pretrained:
-            image = TF.normalize(image, image_net_mean, image_net_std)
-
         image = array_to_img(image, data_format="channels_last")
-        if self.train:
-            if 'hflip' in self.augment_list:
-                if random.random() > 0.5:
-                    image = TF.hflip(image)
-            if 'vflip' in self.augment_list:
-                if random.random() > 0.5:
-                    image = TF.vflip(image)
-            if 'affine' in self.augment_list:
-                if random.random() > 0.5:
-                    angle = random.randint(0, 90)
-                    translate = (random.uniform(0, 100), random.uniform(0, 100))
-                    scale = random.uniform(0.5, 2)
-                    image = TF.affine(image, angle=angle, translate=translate, scale=scale)
-            if 'adjust_brightness' in self.augment_list:
-                if random.random() > 0.5:
-                    brightness_factor = random.uniform(0.8, 1.2)
-                    image = TF.adjust_brightness(image, brightness_factor)
-            if 'adjust_saturation' in self.augment_list:
-                if random.random() > 0.5:
-                    saturation_factor = random.uniform(0.8, 1.2)
-                    image = TF.adjust_saturation(image, saturation_factor)
-        else:
-            if self.pretrained:
-                image = TF.normalize(image, image_net_mean, image_net_std)
+
+        if 'hflip' in self.augment_list:
+            if random.random() > 0.5:
+                image = TF.hflip(image)
+        if 'vflip' in self.augment_list:
+            if random.random() > 0.5:
+                image = TF.vflip(image)
+        if 'affine' in self.augment_list:
+            if random.random() > 0.5:
+                angle = random.randint(0, 90)
+                translate = (random.uniform(0, 100), random.uniform(0, 100))
+                scale = random.uniform(0.5, 2)
+                image = TF.affine(image, angle=angle, translate=translate, scale=scale)
+        if 'adjust_brightness' in self.augment_list:
+            if random.random() > 0.5:
+                brightness_factor = random.uniform(0.8, 1.2)
+                image = TF.adjust_brightness(image, brightness_factor)
+        if 'adjust_saturation' in self.augment_list:
+            if random.random() > 0.5:
+                saturation_factor = random.uniform(0.8, 1.2)
+                image = TF.adjust_saturation(image, saturation_factor)
 
         image = img_to_array(image, data_format="channels_last")
         image = (image / 255.0).astype('float32')
@@ -74,7 +70,8 @@ class MyDataset(Dataset):
 
         if self.train:
             image = self.transform_fn(image)
-
+        if self.pretrained:
+            image = image # todo normalize
         label = self.labels[ID]
 
         return image, label
