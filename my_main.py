@@ -150,16 +150,16 @@ def main():
                     loss.backward()
                     optimizer.step()
                     step += 1
-
+                    print(output_probs)
                     outputs = (output_probs > 0.5)
-
+                    print(outputs)
                     train_labels_batch = train_labels_batch.cpu().detach().numpy()
                     outputs = outputs.cpu().detach().numpy()
 
                     epoch_time = time.time() - start_time
                     train_metrics = {'precision': metrics.average_precision_score(train_labels_batch, outputs, average='samples'),
                                      'recall': metrics.recall_score(train_labels_batch, outputs, average='samples'),
-                                     'F1_score': metrics.f1_score(train_labels_batch, outputs),
+                                     'F1_score': metrics.f1_score(train_labels_batch, outputs, average='samples'),
                                      'epoch_time': epoch_time}
 
                 ##################################### validation ###########################################
@@ -183,7 +183,7 @@ def main():
 
                         valid_metrics = {'precision': metrics.average_precision_score(valid_labels_batch, outputs, average='samples'),
                                          'recall': metrics.recall_score(valid_labels_batch, outputs, average='samples'),
-                                         'F1_score': metrics.f1_score(valid_labels_batch, outputs)}
+                                         'F1_score': metrics.f1_score(valid_labels_batch, outputs, average='samples')}
 
                 # write events
                 # write_event(log, step, epoch=epoch, train_metrics=train_metrics, valid_metrics=valid_metrics)
