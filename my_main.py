@@ -170,11 +170,9 @@ def main():
                         valid_image_batch = valid_image_batch.to(device).type(torch.cuda.FloatTensor).permute(0, 3, 1, 2)
                         valid_labels_batch = valid_labels_batch.to(device).type(torch.cuda.FloatTensor)
 
-                        output_probs = models_pool[model_id](valid_image_batch)
+                        output_probs = models_pool(valid_image_batch)# models_pool[model_id](valid_image_batch)
 
-                        print(output_probs)
                         outputs = (output_probs > 0.5)
-                        print(outputs)
 
                         loss = nn.BCEWithLogitsLoss(output_probs, valid_labels_batch)
 
