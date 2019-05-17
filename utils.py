@@ -11,7 +11,7 @@ import torchvision
 
 def load_image(image_file):
     f = h5py.File(image_file, 'r')
-    img_np = f['img'].value
+    img_np = f['img'][()]
     img_np = (img_np / 255.0).astype('float32')
     return img_np
 
