@@ -141,7 +141,6 @@ def main():
 
                     output_probs = models_pool(train_image_batch)  # models_pool[model_id](train_image_batch)
 
-                    outputs = torch.sigmoid(output_probs)
 
                     loss = nn.BCEWithLogitsLoss()
                     loss = loss(output_probs, train_labels_batch)
@@ -151,6 +150,8 @@ def main():
                     loss.backward()
                     optimizer.step()
                     step += 1
+
+                    outputs = (output_probs > 0.5)
 
                     train_labels_batch = train_labels_batch.cpu().detach().numpy()
                     outputs = outputs.cpu().detach().numpy()
@@ -171,7 +172,9 @@ def main():
 
                         output_probs = models_pool[model_id](valid_image_batch)
 
-                        outputs = torch.sigmoid(output_probs)
+                        print(output_probs)
+                        outputs = (output_probs > 0.5)
+                        print(outputs)
 
                         loss = nn.BCEWithLogitsLoss(output_probs, valid_labels_batch)
 
