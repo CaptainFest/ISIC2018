@@ -7,6 +7,7 @@ from torch.utils.data import Dataset, DataLoader
 from utils import load_image
 import pandas as pd
 import random
+import numpy as np
 
 
 class MyDataset(Dataset):
@@ -21,13 +22,13 @@ class MyDataset(Dataset):
         self.mask_ind = pd.read_csv('mask_ind.csv')
 
         if self.train:
-            self.train_test_id = self.train_test_id[self.train_test_id['Split'] == 'train'].index.values
+            self.train_test_id = self.train_test_id[self.train_test_id['Split'] == 'train'].ID.values
         else:
-            self.train_test_id = self.train_test_id[self.train_test_id['Split'] != 'train'].index.values
+            self.train_test_id = self.train_test_id[self.train_test_id['Split'] != 'train'].ID.values
         self.n = train_test_id.shape[0]
 
     def __len__(self):
-        return len(self.n)
+        return self.n
 
     def transform_fn(self, image):
 
@@ -57,24 +58,28 @@ class MyDataset(Dataset):
         image = img_to_array(image, data_format="channels_last")
         image = (image / 255.0).astype('float32')
 
+        if self.pretrained:
+            mean = np.array([0.485, 0.456, 0.406])
+            std = np.array([0.229, 0.224, 0.225])
+            image = (image - mean)/std
+
         return image
 
     def __getitem__(self, index):
-        'Generates one sample of data'
-        # Select sample
-        ID = self.img_IDs[index]
+
+        ID = self.train_test_id[index]
         path = self.image_path
 
         # Load image from h5
-        image = load_image(os.path.join(path, ID, '.h5'))
+        image = load_image(os.path.join(path, ID + '.h5'))
 
         if self.train:
-            image = self.transform_fn(image)
-        if self.pretrained:
-            image = image # todo normalize
-        label = self.labels[ID]
+            if self.augment_list:
+                image = self.transform_fn(image)
 
-        return image, label
+        labels = self.mask_ind[ID]
+
+        return image, labels
 
 
 def make_loader(train_test_id, image_path, args, train=True, shuffle=True):
