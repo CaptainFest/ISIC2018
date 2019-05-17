@@ -133,10 +133,7 @@ def main():
                         print(f'\rBatch {i} / {n1}', end='')
 
                     train_image_batch = train_image_batch.permute(0, 3, 1, 2)
-                    print(device)
                     train_image_batch = train_image_batch.to(device).type(torch.cuda.FloatTensor)
-                    print(train_image_batch.device)
-                    print(next(models_pool.parameters()).is_cuda, 'cuda?')
                     train_labels_batch = train_labels_batch.to(device).type(torch.cuda.FloatTensor)
 
                     output_probs = models_pool(train_image_batch)  # models_pool[model_id](train_image_batch)
@@ -167,14 +164,15 @@ def main():
                     n2 = len(valid_loader)
                     for i, (valid_image_batch, valid_labels_batch) in enumerate(valid_loader):
                         print(f'\rBatch {i} / {n2}', end='')
-                        valid_image_batch = valid_image_batch.to(device).type(torch.cuda.FloatTensor).permute(0, 3, 1, 2)
+                        valid_image_batch = valid_image_batch.permute(0, 3, 1, 2).to(device).type(torch.cuda.FloatTensor)
                         valid_labels_batch = valid_labels_batch.to(device).type(torch.cuda.FloatTensor)
 
-                        output_probs = models_pool(valid_image_batch)# models_pool[model_id](valid_image_batch)
+                        output_probs = models_pool(valid_image_batch) # models_pool[model_id](valid_image_batch)
 
                         outputs = (output_probs > 0.5)
 
-                        loss = nn.BCEWithLogitsLoss(output_probs, valid_labels_batch)
+                        loss = nn.BCEWithLogitsLoss()
+                        loss = loss(output_probs, valid_labels_batch)
 
                         valid_image_batch = valid_image_batch.cpu().detach().numpy()
                         valid_labels_batch = valid_labels_batch.cpu().detach().numpy()
