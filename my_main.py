@@ -20,6 +20,11 @@ from my_dataset import make_loader
 import pandas as pd
 
 
+def output_tn(output):
+    y_pred, y = output
+    y_pred = torch.round(y_pred)
+    return y_pred, y
+
 def main():
     parser = argparse.ArgumentParser()
     arg = parser.add_argument
@@ -154,11 +159,6 @@ def main():
                     # train_labels_batch = train_labels_batch.cpu().detach().numpy()
                     # outputs = outputs.cpu().detach().numpy()
 
-                    def output_tn(output):
-                        y_pred, y = output
-                        y_pred = torch.round(y_pred)
-                        return y_pred, y
-
                     precision = Precision(output_tn((train_labels_batch, outputs)), average=True, is_multilabel=True)
                     recall = Recall(output_tn((train_labels_batch, outputs)), average=True, is_multilabel=True)
 
@@ -167,6 +167,8 @@ def main():
                                      'recall': recall,
                                      # 'F1_score': (precision * recall * 2 / (precision + recall)).mean(),
                                      'epoch_time': epoch_time}
+                    if i%20 == 0:
+                        print(train_metrics)
 
                 ##################################### validation ###########################################
                 with torch.no_grad():
@@ -183,12 +185,14 @@ def main():
                         loss = nn.BCEWithLogitsLoss()
                         loss = loss(output_probs, valid_labels_batch)
 
-                        valid_image_batch = valid_image_batch.cpu().detach().numpy()
-                        valid_labels_batch = valid_labels_batch.cpu().detach().numpy()
+                        precision = Precision(output_tn((valid_labels_batch, outputs)), average=True,
+                                              is_multilabel=True)
+                        recall = Recall(output_tn((valid_labels_batch, outputs)), average=True, is_multilabel=True)
 
-                        # valid_metrics = {'precision': metrics.average_precision_score(valid_labels_batch, outputs, average='samples'),
-                        #                 'recall': metrics.recall_score(valid_labels_batch, outputs, average='samples'),
-                        #                 'F1_score': metrics.f1_score(valid_labels_batch, outputs, average='samples')}
+                        valid_metrics = {'precision': precision,
+                                         'recall': recall}
+                                         # 'F1_score': (precision * recall * 2 / (precision + recall)).mean()}
+                        print(valid_metrics)
 
                 # write events
                 # write_event(log, step, epoch=epoch, train_metrics=train_metrics, valid_metrics=valid_metrics)
