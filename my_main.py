@@ -151,12 +151,12 @@ def main():
                     print(output_probs)
                     outputs = (output_probs > 0.5)
                     print(outputs)
-                    train_labels_batch = train_labels_batch.cpu().detach().numpy()
-                    outputs = outputs.cpu().detach().numpy()
+                    # train_labels_batch = train_labels_batch.cpu().detach().numpy()
+                    # outputs = outputs.cpu().detach().numpy()
 
                     precision = Precision(train_labels_batch, outputs, is_multilabel=True)
                     recall = Recall(train_labels_batch, outputs, is_multilabel=True)
-                    
+
                     epoch_time = time.time() - start_time
                     train_metrics = {'precision':precision,
                                      'recall': recall,
