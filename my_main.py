@@ -23,8 +23,8 @@ def main():
     parser = argparse.ArgumentParser()
     arg = parser.add_argument
     arg('--model', type=str, default='vgg16', choices=['vgg16', 'resnet50'])
-    arg('--batch-normalization', type=bool, default=True)
-    arg('--pretrained', type=bool, default=False)
+    arg('--batch-normalization', action='store_true')  # if --batch-normalization parameter then True
+    arg('--pretrained', action='store_true')           # if --pretrained parameter then True
     arg('--lr', type=int, default=0.001)
     arg('--batch-size', type=int, default=1)
     arg('--workers', type=int, default=1)
