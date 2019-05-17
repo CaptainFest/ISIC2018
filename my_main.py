@@ -184,6 +184,9 @@ def main():
                         loss = nn.BCEWithLogitsLoss()
                         loss = loss(output_probs, valid_labels_batch)
 
+                        valid_labels_batch = valid_labels_batch.cpu().detach().numpy()
+                        outputs = outputs.cpu().detach().numpy()
+
                         precision = metrics.precision_score(valid_labels_batch, outputs, average='samples')
                         recall = metrics.recall_score(valid_labels_batch, outputs, average='samples')
 
