@@ -168,8 +168,8 @@ def main():
                                      'recall': recall,
                                      # 'F1_score': (precision * recall * 2 / (precision + recall)).mean(),
                                      'epoch_time': epoch_time}"""
-                train_metrics = {'precision': prec.compute(),
-                                 'recall': rec.compute()}
+                train_metrics = {'precision': prec.compute().item(),
+                                 'recall': rec.compute().item()}
                 print(train_metrics)
                 prec.reset()
                 rec.reset()
@@ -190,8 +190,8 @@ def main():
                         loss = nn.BCEWithLogitsLoss()
                         loss = loss(output_probs, valid_labels_batch)
 
-                        prec.update((outputs, train_labels_batch))
-                        rec.update((outputs, train_labels_batch))
+                        prec.update((outputs, valid_labels_batch))
+                        rec.update((outputs, valid_labels_batch))
 
                         """valid_labels_batch = valid_labels_batch.cpu().detach().numpy()
                         outputs = outputs.cpu().detach().numpy()
@@ -201,8 +201,8 @@ def main():
 
                                          # 'F1_score': (precision * recall * 2 / (precision + recall)).mean()}
 
-                valid_metrics = {'precision': prec.compute(),
-                                 'recall': rec.compute()}
+                valid_metrics = {'precision': prec.compute().item(),
+                                 'recall': rec.compute().item()}
                 print(valid_metrics)
                 prec.reset()
                 rec.reset()
