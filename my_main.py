@@ -67,6 +67,25 @@ def main():
     epoch = 1
     step = 0
 
+    train_test_id = pd.read_csv('train_test_id.csv')
+    train_loader = make_loader(train_test_id, args.image_path, args, train=True, shuffle=True, )
+    valid_loader = make_loader(train_test_id, args.image_path, args, train=False, shuffle=True)
+
+    if True:
+        print('--' * 10)
+        print('check data')
+        train_image, train_mask, train_mask_ind = next(iter(train_loader))
+        print('train_image.shape', train_image.shape)
+        print('train_mask.shape', train_mask.shape)
+        print('train_mask_ind.shape', train_mask_ind.shape)
+        print('train_image.min', train_image.min().item())
+        print('train_image.max', train_image.max().item())
+        print('train_mask.min', train_mask.min().item())
+        print('train_mask.max', train_mask.max().item())
+        print('train_mask_ind.min', train_mask_ind.min().item())
+        print('train_mask_ind.max', train_mask_ind.max().item())
+    print('--' * 10)
+
     cudnn.benchmark = True
 
     optimizer = Adam(model.parameters(), lr=args.lr)
@@ -82,15 +101,15 @@ def main():
                     features = list(model.classifier.children())[:-1]  # Remove last layer
                     features.extend([nn.Linear(num_features, 5)])  # Add our layer with 4 outputs
                     model.classifier = nn.Sequential(*features)
-                    print(model)
+                    # print(model)
 
             # return
 
-            train_test_id = pd.read_csv('train_test_id.csv')
+            """train_test_id = pd.read_csv('train_test_id.csv')
 
             # define data loader
             train_loader = make_loader(train_test_id, args.image_path, args, train=True, shuffle=True,)
-            valid_loader = make_loader(train_test_id, args.image_path, args, train=False, shuffle=True)
+            valid_loader = make_loader(train_test_id, args.image_path, args, train=False, shuffle=True)"""
 
             n_models = 1
 
@@ -107,8 +126,9 @@ def main():
                 train_metrics, valid_metrics = 0, 0
                 ##################################### training #############################################
                 n1 = len(train_loader)
+                print(n1)
                 for i, (train_image_batch, train_labels_batch) in enumerate(train_loader):
-
+                    print('ay')
                     if i % 20 == 0:
                         print(f'\rBatch {i} / {n1}', end='')
 
