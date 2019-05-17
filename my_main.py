@@ -152,8 +152,8 @@ def main():
                     optimizer.step()
                     step += 1
 
-                    train_labels_batch = train_labels_batch.to('cpu')
-                    outputs = outputs.to('cpu')
+                    train_labels_batch = train_labels_batch.cpu().detach().numpy()
+                    outputs = outputs.cpu().detach().numpy()
 
                     epoch_time = time.time() - start_time
                     train_metrics = {'precision': metrics.average_precision_score(train_labels_batch, outputs, average='samples'),
@@ -174,6 +174,10 @@ def main():
                         outputs = torch.sigmoid(output_probs)
 
                         loss = nn.BCEWithLogitsLoss(output_probs, valid_labels_batch)
+
+                        valid_image_batch = valid_image_batch.cpu().detach().numpy()
+                        valid_labels_batch = valid_labels_batch.cpu().detach().numpy()
+
                         valid_metrics = {'precision': metrics.average_precision_score(valid_labels_batch, outputs, average='samples'),
                                          'recall': metrics.recall_score(valid_labels_batch, outputs, average='samples'),
                                          'F1_score': metrics.f1_score(valid_labels_batch, outputs)}
