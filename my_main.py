@@ -3,6 +3,7 @@ import torch.nn
 import time
 import argparse
 import sklearn.metrics as metrics
+from ignite.metrics import Precision, Recall
 
 import torch
 import torchvision
@@ -153,11 +154,14 @@ def main():
                     train_labels_batch = train_labels_batch.cpu().detach().numpy()
                     outputs = outputs.cpu().detach().numpy()
 
+                    precision = Precision(train_labels_batch, outputs, is_multilabel=True)
+                    recall = Recall(train_labels_batch, outputs, is_multilabel=True)
+                    
                     epoch_time = time.time() - start_time
-                    # train_metrics = {'precision': metrics.average_precision_score(train_labels_batch, outputs, average='samples'),
-                    #                 'recall': metrics.recall_score(train_labels_batch, outputs, average='samples'),
-                    #                 'F1_score': metrics.f1_score(train_labels_batch, outputs, average='samples'),
-                    #                 'epoch_time': epoch_time}
+                    train_metrics = {'precision':precision,
+                                     'recall': recall,
+                                     'F1_score': (precision * recall * 2 / (precision + recall)).mean(),
+                                     'epoch_time': epoch_time}
 
                 ##################################### validation ###########################################
                 with torch.no_grad():
