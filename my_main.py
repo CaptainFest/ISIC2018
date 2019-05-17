@@ -154,13 +154,18 @@ def main():
                     # train_labels_batch = train_labels_batch.cpu().detach().numpy()
                     # outputs = outputs.cpu().detach().numpy()
 
-                    precision = Precision(train_labels_batch, outputs, is_multilabel=True)
-                    recall = Recall(train_labels_batch, outputs, is_multilabel=True)
+                    def output_tn(output):
+                        y_pred, y = output
+                        y_pred = torch.round(y_pred)
+                        return y_pred, y
+
+                    precision = Precision(output_tn((train_labels_batch, outputs)), average=True, is_multilabel=True)
+                    recall = Recall(output_tn((train_labels_batch, outputs)), average=True, is_multilabel=True)
 
                     epoch_time = time.time() - start_time
                     train_metrics = {'precision':precision,
                                      'recall': recall,
-                                     'F1_score': (precision * recall * 2 / (precision + recall)).mean(),
+                                     # 'F1_score': (precision * recall * 2 / (precision + recall)).mean(),
                                      'epoch_time': epoch_time}
 
                 ##################################### validation ###########################################
