@@ -29,7 +29,7 @@ def main():
     arg('--batch-size', type=int, default=1)
     arg('--workers', type=int, default=1)
     arg('--augment-list', type=list, nargs='*', default=[])
-    arg('--image-path', type=str, default='/home/irek/My_work/train/h5/')
+    arg('--image-path', type=str, default='/home/irek/My_work/train/h5_224/')
     arg('--mask-path', type=str, default='/home/irek/My_work/train/binary/')
     arg('--n-epochs', type=int, default=1)
     arg('--n-models', type=int, default=5)
@@ -60,8 +60,10 @@ def main():
 
     # multiple GPUs
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    torch.set_default_tensor_type(torch.cuda.FloatTensor)
     if torch.cuda.device_count() > 1:
         model = nn.DataParallel(model)
+    print(device)
     model.to(device)
 
     epoch = 1
@@ -74,16 +76,13 @@ def main():
     if True:
         print('--' * 10)
         print('check data')
-        train_image, train_mask, train_mask_ind = next(iter(train_loader))
+        train_image, train_mask_ind = next(iter(train_loader))
         print('train_image.shape', train_image.shape)
-        print('train_mask.shape', train_mask.shape)
-        print('train_mask_ind.shape', train_mask_ind.shape)
+        print('train_label_ind.shape', train_mask_ind.shape)
         print('train_image.min', train_image.min().item())
         print('train_image.max', train_image.max().item())
-        print('train_mask.min', train_mask.min().item())
-        print('train_mask.max', train_mask.max().item())
-        print('train_mask_ind.min', train_mask_ind.min().item())
-        print('train_mask_ind.max', train_mask_ind.max().item())
+        print('train_label_ind.min', train_mask_ind.min().item())
+        print('train_label_ind.max', train_mask_ind.max().item())
     print('--' * 10)
 
     cudnn.benchmark = True
@@ -116,32 +115,40 @@ def main():
             if args.mode in ['classic_AL', 'grid_AL']:
                 n_models = args.n_models
             # define models pool
-            models_pool = [model for i in range(n_models)]
-            optimizers = [Adam(model.parameters(), lr=args.lr) for i in range(n_models)]
+            models_pool = model   # [model for i in range(n_models)]
+            if ep == 1:
+                print(models_pool)
+            optimizers = Adam(model.parameters(), lr=args.lr) # [Adam(model.parameters(), lr=args.lr) for i in range(n_models)]
 
             for model_id in range(n_models):
                 start_time = time.time()
                 # state = load_weights(model_id)
                 # model.load_state_dict(state['model'])
                 train_metrics, valid_metrics = 0, 0
+
                 ##################################### training #############################################
                 n1 = len(train_loader)
-                print(n1)
                 for i, (train_image_batch, train_labels_batch) in enumerate(train_loader):
-                    print('ay')
+
                     if i % 20 == 0:
                         print(f'\rBatch {i} / {n1}', end='')
 
-                    train_image_batch = train_image_batch.to(device).type(torch.cuda.FloatTensor).permute(0, 3, 1, 2)
+                    train_image_batch = train_image_batch.permute(0, 3, 1, 2)
+                    print(device)
+                    train_image_batch = train_image_batch.to(device).type(torch.cuda.FloatTensor)
+                    print(train_image_batch.device)
+                    print(next(models_pool.parameters()).is_cuda, 'cuda?')
                     train_labels_batch = train_labels_batch.to(device).type(torch.cuda.FloatTensor)
 
-                    output_probs = models_pool[model_id](train_image_batch)
+                    output_probs = models_pool(train_image_batch)  # models_pool[model_id](train_image_batch)
 
                     outputs = torch.sigmoid(output_probs)
 
-                    loss = nn.BCEWithLogitsLoss(output_probs, train_labels_batch)
+                    loss = nn.BCEWithLogitsLoss()
+                    loss = loss(output_probs, train_labels_batch)
+                    #nn.BCEWithLogitsLoss(output_probs, train_labels_batch)
 
-                    optimizers[model_id].zero_grad()
+                    optimizers.zero_grad() # optimizers[model_id].zero_grad()
                     loss.backward()
                     optimizer.step()
                     step += 1

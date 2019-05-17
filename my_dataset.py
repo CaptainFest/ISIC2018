@@ -15,21 +15,21 @@ class MyDataset(Dataset):
     def __init__(self, train_test_id, image_path, train, pretrained, augment_list):
 
         self.train_test_id = train_test_id
-        # print(self.train_test_id)
         self.image_path = image_path
         self.train = train
         self.pretrained = pretrained
         self.augment_list = augment_list
         self.mask_ind = pd.read_csv('mask_ind.csv')
-        print(self.mask_ind)
-        print('teks')
+
         if self.train:
+            self.mask_ind = self.mask_ind[self.train_test_id['Split'] == 'train'].values.astype('uint8')
             self.train_test_id = self.train_test_id[self.train_test_id['Split'] == 'train'].ID.values
             print('Train =', self.train, 'train_test_id.shape: ', self.train_test_id.shape)
         else:
+            self.mask_ind = self.mask_ind[self.train_test_id['Split'] != 'train'].values.astype('uint8')
             self.train_test_id = self.train_test_id[self.train_test_id['Split'] != 'train'].ID.values
             print('Train =', self.train, 'train_test_id.shape: ', self.train_test_id.shape)
-        self.n = train_test_id.shape[0]
+        self.n = self.train_test_id.shape[0]
 
     def __len__(self):
         return self.n
@@ -71,21 +71,17 @@ class MyDataset(Dataset):
 
     def __getitem__(self, index):
 
-        ID = self.train_test_id[index]
+        image_name = self.train_test_id[index]
         path = self.image_path
 
         # Load image from h5
-        print('at')
-        print(os.path.join(path, ID + '.h5'))
-        image = load_image(os.path.join(path, ID + '.h5'))
-        # print(image)
+        image = load_image(os.path.join(path, image_name + '.h5'))
+
         if self.train:
             if self.augment_list:
-                print('wat')
                 image = self.transform_fn(image)
 
-        labels = self.mask_ind.iloc[index]
-        print(labels)
+        labels = self.mask_ind[index, :]
 
         return image, labels
 
