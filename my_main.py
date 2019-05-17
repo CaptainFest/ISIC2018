@@ -61,8 +61,6 @@ def main():
     # multiple GPUs
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     torch.set_default_tensor_type(torch.cuda.FloatTensor)
-    if torch.cuda.device_count() > 1:
-        model = nn.DataParallel(model)
     print(device)
     model.to(device)
 
@@ -91,16 +89,17 @@ def main():
 
     for ep in range(epoch, args.n_epochs + 1):
         try:
-            # freeze model layers if pretrained
+            # freeze layers if pretrained
             if args.pretrained:
                 for param in model.features.parameters():
                     param.require_grad = False
-                if args.model == 'vgg16':
-                    num_features = model.classifier[6].in_features
-                    features = list(model.classifier.children())[:-1]  # Remove last layer
-                    features.extend([nn.Linear(num_features, 5)])  # Add our layer with 4 outputs
-                    model.classifier = nn.Sequential(*features)
-                    # print(model)
+            # replace last layer
+            if args.model == 'vgg16':
+                num_features = model.classifier[6].in_features
+                features = list(model.classifier.children())[:-1]  # Remove last layer
+                features.extend([nn.Linear(num_features, 5)])  # Add our layer with 4 outputs
+                model.classifier = nn.Sequential(*features)
+                # print(model)
 
             # return
 
