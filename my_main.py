@@ -163,8 +163,8 @@ def main():
                     recall = Recall(output_tn((train_labels_batch, outputs)), average=True, is_multilabel=True)
 
                     epoch_time = time.time() - start_time
-                    train_metrics = {'precision': float(precision),
-                                     'recall': float(recall),
+                    train_metrics = {'precision': precision.compute() ,
+                                     'recall': recall.compute(),
                                      # 'F1_score': (precision * recall * 2 / (precision + recall)).mean(),
                                      'epoch_time': epoch_time}
                     if i%20 == 0:
@@ -189,8 +189,8 @@ def main():
                                               is_multilabel=True)
                         recall = Recall(output_tn((valid_labels_batch, outputs)), average=True, is_multilabel=True)
 
-                        valid_metrics = {'precision': float(precision),
-                                         'recall': float(recall)}
+                        valid_metrics = {'precision': precision.compute() ,
+                                         'recall': recall.compute() }
                                          # 'F1_score': (precision * recall * 2 / (precision + recall)).mean()}
                         print(valid_metrics)
 
