@@ -152,6 +152,9 @@ def main():
                     optimizer.step()
                     step += 1
 
+                    train_labels_batch = train_labels_batch.to('cpu')
+                    outputs = outputs.to('cpu')
+
                     epoch_time = time.time() - start_time
                     train_metrics = {'precision': metrics.average_precision_score(train_labels_batch, outputs, average='samples'),
                                      'recall': metrics.recall_score(train_labels_batch, outputs, average='samples'),
