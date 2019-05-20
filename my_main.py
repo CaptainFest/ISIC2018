@@ -45,7 +45,10 @@ def create_model(args):
             model = models.resnet50()
     else:
         return
-    return model
+
+    optimizer = Adam(model.parameters(), lr=args.lr)
+
+    return model, optimizer
 
 
 def main():
@@ -98,7 +101,7 @@ def main():
     step = 0
 
     train_test_id = pd.read_csv('train_test_id.csv')
-    train_loader = make_loader(train_test_id, args.image_path, args, train=True, shuffle=True, )
+    train_loader = make_loader(train_test_id, args.image_path, args, train=True, shuffle=True)
     valid_loader = make_loader(train_test_id, args.image_path, args, train=False, shuffle=True)
 
     if True:
@@ -119,42 +122,23 @@ def main():
 
     for ep in range(epoch, args.n_epochs + 1):
         try:
-            # freeze layers if pretrained
-            if args.pretrained:
-                for param in model.features.parameters():
-                    param.require_grad = False
-            # replace last layer
-            if args.model == 'vgg16':
-                in_f = model.classifier[6].in_features
-                model.classifier[6] = nn.Linear(in_f, 5)
-                # print(model)
-            if args.model == 'resnet50':
-                in_f = model.fc.in_features
-                model.fc = nn.Linear(in_f, 5)
-                print(model)
 
-
-            n_models = 1
             bootstrap_models = {}
+            optimizers = {}
+            n_models = args.n_models
 
-            if args.mode in ['classic_AL', 'grid_AL']:
-                n_models = args.n_models
-                # define models pool
-                for i in range(n_models):
-                    bootstrap_models[i] = create_model(args.model)
-            else:
-                bootstrap_models[0] = create_model(args.model)
             # define models pool
+            for i in range(n_models):
+                bootstrap_models[i] = create_model(args.model)
 
             if ep == 1:
                 print(bootstrap_models[0])
-            optimizers = Adam(model.parameters(), lr=args.lr) # [Adam(model.parameters(), lr=args.lr) for i in range(n_models)]
 
             for model_id in range(n_models):
                 start_time = time.time()
                 # state = load_weights(model_id)
                 # model.load_state_dict(state['model'])
-                train_metrics, valid_metrics = 0, 0
+
                 prec = Precision()
                 rec = Recall()
                 ##################################### training #############################################
@@ -168,13 +152,12 @@ def main():
                     train_image_batch = train_image_batch.to(device).type(torch.FloatTensor)
                     train_labels_batch = train_labels_batch.to(device).type(torch.FloatTensor)
 
-                    output_probs = bootstrap_models[](train_image_batch)  # models_pool[model_id](train_image_batch)
+                    output_probs = bootstrap_models[model_id](train_image_batch)
 
                     loss = nn.BCEWithLogitsLoss()
                     loss = loss(output_probs, train_labels_batch)
-                    #nn.BCEWithLogitsLoss(output_probs, train_labels_batch)
 
-                    optimizers.zero_grad() # optimizers[model_id].zero_grad()
+                    optimizers[model_id].zero_grad()  # optimizers[model_id].zero_grad()
                     loss.backward()
                     optimizer.step()
                     step += 1
@@ -194,8 +177,8 @@ def main():
                 ##################################### validation ###########################################
                 with torch.no_grad():
                     n2 = len(valid_loader)
-                    prec = Precision()
-                    rec = Recall()
+                    prec = Precision(is_multilabel=True)
+                    rec = Recall(is_multilabel=True)
                     for i, (valid_image_batch, valid_labels_batch) in enumerate(valid_loader):
                         print(f'\rBatch {i} / {n2}', end='')
                         valid_image_batch = valid_image_batch.permute(0, 3, 1, 2).to(device).type(torch.FloatTensor)

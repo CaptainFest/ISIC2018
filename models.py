@@ -186,14 +186,6 @@ class ResNet50(nn.Module):
             nn.Linear(num_feats, num_classes)
         )
 
-        # Init of last layer
-        # for m in self.classifier:
-        #    kaiming_normal(m.weight)
-
-        # Freeze all weights except the last classifier layer
-        # for p in self.features.parameters():
-        #     p.requires_grad = False
-
     def forward(self, x):
         f = self.features(x)
         f = f.view(f.size(0), -1)
