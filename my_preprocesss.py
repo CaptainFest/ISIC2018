@@ -6,10 +6,10 @@ import h5py
 from joblib import Parallel, delayed
 import os
 
-mask_path = "/home/irek/My_work/train/binary/"
-image_path = "/home/irek/My_work/train/data/"
+image_path = "/home/fest/ISIC/data/"
 
-save_path = "/home/irek/My_work/train/h5_224/"
+save_path = "/home/fest/ISIC/h5_224/"
+
 if not os.path.exists(save_path): os.mkdir(save_path)
 
 

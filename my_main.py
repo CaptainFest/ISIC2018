@@ -2,7 +2,7 @@ import os
 import torch.nn
 import time
 import argparse
-import sklearn.metrics as metrics
+# import sklearn.metrics as metrics
 from ignite.metrics import Precision, Recall
 
 import torch
@@ -24,6 +24,29 @@ def output_tn(output):
     y_pred, y = output
     y_pred = torch.round(y_pred)
     return y_pred, y
+
+
+def create_model(args):
+    if args.model == 'vgg16':
+        if args.pretrained:
+            if args.batch_normalization:
+                model = models.vgg16_bn(pretrained=True)
+            else:
+                model = models.vgg16(pretrained=True)
+        else:
+            if args.batch_normalization:
+                model = models.vgg16_bn()
+            else:
+                model = models.vgg16()
+    elif args.model == 'resnet50':
+        if args.pretrained:
+            model = models.resnet50(pretrained=True)
+        else:
+            model = models.resnet50()
+    else:
+        return
+    return model
+
 
 def main():
     parser = argparse.ArgumentParser()
@@ -65,8 +88,9 @@ def main():
         return
 
     # multiple GPUs
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    torch.set_default_tensor_type(torch.cuda.FloatTensor)
+    #device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    # torch.set_default_tensor_type(torch.cuda.FloatTensor)
+    device = torch.device('cpu')
     print(device)
     model.to(device)
 
@@ -101,28 +125,29 @@ def main():
                     param.require_grad = False
             # replace last layer
             if args.model == 'vgg16':
-                num_features = model.classifier[6].in_features
-                features = list(model.classifier.children())[:-1]  # Remove last layer
-                features.extend([nn.Linear(num_features, 5)])  # Add our layer with 4 outputs
-                model.classifier = nn.Sequential(*features)
+                in_f = model.classifier[6].in_features
+                model.classifier[6] = nn.Linear(in_f, 5)
                 # print(model)
+            if args.model == 'resnet50':
+                in_f = model.fc.in_features
+                model.fc = nn.Linear(in_f, 5)
+                print(model)
 
-            # return
-
-            """train_test_id = pd.read_csv('train_test_id.csv')
-
-            # define data loader
-            train_loader = make_loader(train_test_id, args.image_path, args, train=True, shuffle=True,)
-            valid_loader = make_loader(train_test_id, args.image_path, args, train=False, shuffle=True)"""
 
             n_models = 1
+            bootstrap_models = {}
 
             if args.mode in ['classic_AL', 'grid_AL']:
                 n_models = args.n_models
+                # define models pool
+                for i in range(n_models):
+                    bootstrap_models[i] = create_model(args.model)
+            else:
+                bootstrap_models[0] = create_model(args.model)
             # define models pool
-            models_pool = model   # [model for i in range(n_models)]
+
             if ep == 1:
-                print(models_pool)
+                print(bootstrap_models[0])
             optimizers = Adam(model.parameters(), lr=args.lr) # [Adam(model.parameters(), lr=args.lr) for i in range(n_models)]
 
             for model_id in range(n_models):
@@ -136,14 +161,14 @@ def main():
                 n1 = len(train_loader)
                 for i, (train_image_batch, train_labels_batch) in enumerate(train_loader):
 
-                    if i % 20 == 0:
+                    if i % 50 == 0:
                         print(f'\rBatch {i} / {n1}', end='')
 
                     train_image_batch = train_image_batch.permute(0, 3, 1, 2)
-                    train_image_batch = train_image_batch.to(device).type(torch.cuda.FloatTensor)
-                    train_labels_batch = train_labels_batch.to(device).type(torch.cuda.FloatTensor)
+                    train_image_batch = train_image_batch.to(device).type(torch.FloatTensor)
+                    train_labels_batch = train_labels_batch.to(device).type(torch.FloatTensor)
 
-                    output_probs = models_pool(train_image_batch)  # models_pool[model_id](train_image_batch)
+                    output_probs = bootstrap_models[](train_image_batch)  # models_pool[model_id](train_image_batch)
 
                     loss = nn.BCEWithLogitsLoss()
                     loss = loss(output_probs, train_labels_batch)
@@ -158,16 +183,9 @@ def main():
                     # print(outputs)
                     prec.update((outputs, train_labels_batch))
                     rec.update((outputs, train_labels_batch))
-                    """train_labels_batch = train_labels_batch.cpu().detach().numpy()
-                    outputs = outputs.cpu().detach().numpy()
 
                     epoch_time = time.time() - start_time
-                    precision = metrics.precision_score(train_labels_batch, outputs, average='samples')
-                    recall = metrics.recall_score(train_labels_batch, outputs, average='samples')
-                    train_metrics = {'precision': precision,
-                                     'recall': recall,
-                                     # 'F1_score': (precision * recall * 2 / (precision + recall)).mean(),
-                                     'epoch_time': epoch_time}"""
+
                 train_metrics = {'precision': prec.compute().item(),
                                  'recall': rec.compute().item()}
                 print(train_metrics)
@@ -180,10 +198,10 @@ def main():
                     rec = Recall()
                     for i, (valid_image_batch, valid_labels_batch) in enumerate(valid_loader):
                         print(f'\rBatch {i} / {n2}', end='')
-                        valid_image_batch = valid_image_batch.permute(0, 3, 1, 2).to(device).type(torch.cuda.FloatTensor)
-                        valid_labels_batch = valid_labels_batch.to(device).type(torch.cuda.FloatTensor)
+                        valid_image_batch = valid_image_batch.permute(0, 3, 1, 2).to(device).type(torch.FloatTensor)
+                        valid_labels_batch = valid_labels_batch.to(device).type(torch.FloatTensor)
 
-                        output_probs = models_pool(valid_image_batch)  # models_pool[model_id](valid_image_batch)
+                        output_probs = bootstrap_models[0](valid_image_batch)  # models_pool[model_id](valid_image_batch)
 
                         outputs = (output_probs > 0.5)
 
@@ -193,13 +211,6 @@ def main():
                         prec.update((outputs, valid_labels_batch))
                         rec.update((outputs, valid_labels_batch))
 
-                        """valid_labels_batch = valid_labels_batch.cpu().detach().numpy()
-                        outputs = outputs.cpu().detach().numpy()
-
-                        precision = metrics.precision_score(valid_labels_batch, outputs, average='samples')
-                        recall = metrics.recall_score(valid_labels_batch, outputs, average='samples')"""
-
-                                         # 'F1_score': (precision * recall * 2 / (precision + recall)).mean()}
 
                 valid_metrics = {'precision': prec.compute().item(),
                                  'recall': rec.compute().item()}
