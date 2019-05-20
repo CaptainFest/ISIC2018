@@ -96,7 +96,7 @@ def make_loader(train_test_id, image_path, args, train=True, shuffle=True):
     data_loader = DataLoader(data_set,
                              batch_size=args.batch_size,
                              shuffle=shuffle,
-                             num_workers=args.workers
-                             # pin_memory=torch.cuda.is_available()
+                             num_workers=args.workers,
+                             pin_memory=torch.cuda.is_available()
                              )
     return data_loader

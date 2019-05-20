@@ -2,186 +2,18 @@ from torch import nn
 import torch
 from torchvision import models
 import torchvision
+from torch.optim import Adam
 from torch.nn import functional as F
-
-
-def conv3x3(in_, out):
-    return nn.Conv2d(in_, out, 3, padding=1)
-
-
-class ConvRelu(nn.Module):
-    def __init__(self, in_: int, out: int):
-        super().__init__()
-        self.conv = conv3x3(in_, out)
-        self.activation = nn.ReLU(inplace=True)
-
-    def forward(self, x):
-        x = self.conv(x)
-        x = self.activation(x)
-        return x
-
-
-class DecoderBlock(nn.Module):
-    """
-    Paramaters for Deconvolution were chosen to avoid artifacts, following
-    link https://distill.pub/2016/deconv-checkerboard/
-    """
-
-    def __init__(self, in_channels, middle_channels, out_channels, is_deconv=True):
-        super(DecoderBlock, self).__init__()
-        self.in_channels = in_channels
-
-        if is_deconv:
-            self.block = nn.Sequential(
-                ConvRelu(in_channels, middle_channels),
-                nn.ConvTranspose2d(middle_channels, out_channels, kernel_size=4, stride=2,
-                                   padding=1),
-                nn.ReLU(inplace=True)
-            )
-        else:
-            self.block = nn.Sequential(
-                nn.Upsample(scale_factor=2, mode='bilinear'),
-                ConvRelu(in_channels, middle_channels),
-                ConvRelu(middle_channels, out_channels),
-            )
-
-    def forward(self, x):
-        return self.block(x)
-
-
-class DecoderBlockBN(nn.Module):
-    """
-    Paramaters for Deconvolution were chosen to avoid artifacts, following
-    link https://distill.pub/2016/deconv-checkerboard/
-    """
-
-    def __init__(self, in_channels, middle_channels, out_channels, is_deconv=True):
-        super(DecoderBlockBN, self).__init__()
-        self.in_channels = in_channels
-
-        if is_deconv:
-            self.block = nn.Sequential(
-                ConvRelu(in_channels, middle_channels),
-                nn.ConvTranspose2d(middle_channels, out_channels, kernel_size=4, stride=2,
-                                   padding=1),
-                nn.BatchNorm2d(out_channels),
-                nn.ReLU(inplace=True)
-            )
-        else:
-            self.block = nn.Sequential(
-                nn.Upsample(scale_factor=2, mode='bilinear'),
-                ConvRelu(in_channels, middle_channels),
-                ConvRelu(middle_channels, out_channels),
-            )
-
-    def forward(self, x):
-        return self.block(x)
-
-
-class UNet16(nn.Module):
-    def __init__(self, num_classes=1, num_filters=32, pretrained=False):
-        """
-        :param num_classes:
-        :param num_filters:
-        :param pretrained:
-            False - no pre-trained network used
-            vgg - encoder pre-trained with VGG11
-        """
-        super().__init__()
-        self.num_classes = num_classes
-        self.num_filters = num_filters
-        self.pool = nn.MaxPool2d(2, 2)
-
-        if pretrained == 'vgg':
-            self.encoder = torchvision.models.vgg16(pretrained=True).features
-        else:
-            self.encoder = torchvision.models.vgg16(pretrained=False).features
-
-        self.relu = nn.ReLU(inplace=True)
-
-        self.conv1 = nn.Sequential(self.encoder[0],
-                                   self.relu,
-                                   self.encoder[2],
-                                   self.relu)
-
-        self.conv2 = nn.Sequential(self.encoder[5],
-                                   self.relu,
-                                   self.encoder[7],
-                                   self.relu)
-
-        self.conv3 = nn.Sequential(self.encoder[10],
-                                   self.relu,
-                                   self.encoder[12],
-                                   self.relu,
-                                   self.encoder[14],
-                                   self.relu)
-
-        self.conv4 = nn.Sequential(self.encoder[17],
-                                   self.relu,
-                                   self.encoder[19],
-                                   self.relu,
-                                   self.encoder[21],
-                                   self.relu)
-
-        self.conv5 = nn.Sequential(self.encoder[24],
-                                   self.relu,
-                                   self.encoder[26],
-                                   self.relu,
-                                   self.encoder[28],
-                                   self.relu)
-
-        self.center = DecoderBlock(512, num_filters * 8 * 2, num_filters * 8)
-        self.center_Conv2d = nn.Conv2d(num_filters * 8, num_classes, kernel_size=1)
-
-        self.dec5 = DecoderBlock(512 + num_filters * 8, num_filters * 8 * 2, num_filters * 8)
-        self.dec4 = DecoderBlock(512 + num_filters * 8, num_filters * 8 * 2, num_filters * 8)
-        self.dec3 = DecoderBlock(256 + num_filters * 8, num_filters * 4 * 2, num_filters * 2)
-        self.dec2 = DecoderBlock(128 + num_filters * 2, num_filters * 2 * 2, num_filters)
-        self.dec1 = ConvRelu(64 + num_filters, num_filters)
-        self.final = nn.Conv2d(num_filters, num_classes, kernel_size=1)
-
-    def forward(self, x):
-        conv1 = self.conv1(x)
-        conv2 = self.conv2(self.pool(conv1))
-        conv3 = self.conv3(self.pool(conv2))
-        conv4 = self.conv4(self.pool(conv3))
-        conv5 = self.conv5(self.pool(conv4))
-        center = self.center(self.pool(conv5))
-
-        center_conv = self.center_Conv2d(center)
-        x_out_empty_ind1 = nn.AvgPool2d(kernel_size=center.size()[2:])(center)
-        x_out_empty_ind1 = torch.squeeze(x_out_empty_ind1)
-
-        dec5 = self.dec5(torch.cat([center, conv5], 1))
-
-        dec4 = self.dec4(torch.cat([dec5, conv4], 1))
-        dec3 = self.dec3(torch.cat([dec4, conv3], 1))
-        dec2 = self.dec2(torch.cat([dec3, conv2], 1))
-        dec1 = self.dec1(torch.cat([dec2, conv1], 1))
-
-        x_out_mask = self.final(dec1)
-        x_out_empty_ind2 = nn.MaxPool2d(kernel_size=x_out_mask.size()[2:])(x_out_mask)
-        x_out_empty_ind2 = torch.squeeze(x_out_empty_ind2)
-        #print(x_out_empty_ind.size()) # [8,5,1,1]
-
-        #return x_out_mask, x_out_empty_ind1, x_out_empty_ind2
-        return x_out_mask, x_out_empty_ind1, x_out_empty_ind2
 
 
 class ResNet50(nn.Module):
     def __init__(self, num_classes):
         super(ResNet50, self).__init__()
 
-        # Loading ResNet arch from PyTorch
         model = models.resnet50(pretrained=True)
-
-        # Everything except the last linear layer
         self.features = nn.Sequential(*list(model.children())[:-1])
-
-        # Get number of features of last layer
         num_feats = model.fc.in_features
 
-        # Plug our classifier
         self.classifier = nn.Sequential(
             nn.Linear(num_feats, num_classes)
         )
@@ -193,16 +25,39 @@ class ResNet50(nn.Module):
         return y
 
 
-class Conv3BN(nn.Module):
-    def __init__(self, in_: int, out: int, bn=False):
-        super().__init__()
-        self.conv = conv3x3(in_, out)
-        self.bn = nn.BatchNorm2d(out) if bn else None
-        self.activation = nn.ReLU(inplace=True)
+def create_model(args, device):
+    if args.model == 'vgg16':
+        if args.pretrained:
+            if args.batch_normalization:
+                model = models.vgg16_bn(pretrained=True)
+            else:
+                model = models.vgg16(pretrained=True)
+        else:
+            if args.batch_normalization:
+                model = models.vgg16_bn()
+            else:
+                model = models.vgg16()
+    elif args.model == 'resnet50':
+        if args.pretrained:
+            model = models.resnet50(pretrained=True)
+        else:
+            model = models.resnet50()
+    else:
+        return
 
-    def forward(self, x):
-        x = self.conv(x)
-        if self.bn is not None:
-            x = self.bn(x)
-        x = self.activation(x)
-        return x
+    for param in model.parameters():
+        param.requires_grad = False
+
+    if args.model == 'resnet50':
+        num_ftrs = model.fc.in_features
+        model.fc = nn.Linear(num_ftrs, 5)
+    elif args.model == 'vgg16':
+        num_ftrs = model.classifier[6].in_features
+        model.classifier[6] = nn.Linear(num_ftrs, 5)
+
+    # device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    model.to(device)
+
+    optimizer = Adam(model.parameters(), lr=args.lr)
+
+    return model, optimizer
