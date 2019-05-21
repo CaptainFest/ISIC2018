@@ -167,7 +167,8 @@ def main():
 
                     return
                 pass
-                # trainer = Trainer(data_path, mask_path)
+                # trainer = Trainer(data_path, mask_path
+                # )
                 # trainer.AL_step()
         except KeyboardInterrupt:
             return
