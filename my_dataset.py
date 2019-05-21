@@ -4,7 +4,7 @@ import torch
 import torchvision.transforms.functional as TF
 from keras.preprocessing.image import array_to_img, img_to_array
 from torch.utils.data import Dataset, DataLoader
-from utils import load_image, load_mask
+from utils import load_image
 import pandas as pd
 import random
 import numpy as np
@@ -87,16 +87,14 @@ class MyDataset(Dataset):
         path = self.image_path
 
         # Load image and from h5
-        image = load_image(os.path.join(path, name + '.h5'))
-        mask = load_mask(path, name)
+        image = load_image(os.path.join(path, '%s.h5'%(name)), 'image')
+        mask = load_image(os.path.join(path, '%s_attribute_all.h5'%(name)), 'mask')
 
         if self.train:
             if self.augment_list:
                 image, mask = self.transform_fn(image, mask)
 
-        image_with_mask = np.stack(image, mask)
-        print(image_with_mask.shape)
-        return
+        image_with_mask = np.dstack((image, mask))
 
         labels = self.mask_ind[index, :]
 
