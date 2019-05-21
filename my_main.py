@@ -122,7 +122,10 @@ def main():
                                  'precision': prec.compute(),
                                  'recall': rec.compute(),
                                  'epoch_time': epoch_time}
-                print(train_metrics)
+                print('Epoch: {:.4f} Prec: {:.4f} Recall: {:.4f} Time: {:.4f}'.format(train_metrics['epoch'],
+                                                             train_metrics['precision'],
+                                                             train_metrics['recall'],
+                                                             train_metrics['epoch_time']))
                 prec.reset()
                 #prec2.reset()
                 rec.reset()
@@ -149,9 +152,12 @@ def main():
                         prec.update((outputs, valid_labels_batch))
                         rec.update((outputs, valid_labels_batch))
 
-                valid_metrics = {'precision': prec.compute(),
+                valid_metrics = {'epoch': ep,
+                                 'precision': prec.compute(),
                                  'recall': rec.compute()}
-                print(valid_metrics)
+                print('Epoch: {:.4f} Prec: {:.4f} Recall: {:.4f}'.format(valid_metrics['epoch'],
+                                                                         valid_metrics['precision'],
+                                                                         valid_metrics['recall']))
                 prec.reset()
                 rec.reset()
 
