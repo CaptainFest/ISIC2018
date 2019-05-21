@@ -84,6 +84,8 @@ def main():
 
                 prec = Precision(average=True, is_multilabel=True)
                 rec = Recall(average=True, is_multilabel=True)
+                #prec2 = Precision(is_multilabel=True)
+                #rec2 = Recall(is_multilabel=True)
                 ##################################### training #############################################
                 n1 = len(train_loader)
                 for i, (train_image_batch, train_labels_batch) in enumerate(train_loader):
@@ -109,6 +111,8 @@ def main():
                     # print(outputs)
                     prec.update((outputs, train_labels_batch))
                     rec.update((outputs, train_labels_batch))
+                    #prec2.update((outputs, train_labels_batch))
+                    #rec2.update((outputs, train_labels_batch))
                 # save weights for each model after its training
                 # save_weights(model, model_id, args.model_path, epoch + 1, steps)
 
@@ -120,7 +124,9 @@ def main():
                                  'epoch_time': epoch_time}
                 print(train_metrics)
                 prec.reset()
+                #prec2.reset()
                 rec.reset()
+                #rec2.reset()
                 ##################################### validation ###########################################
                 with torch.no_grad():
                     n2 = len(valid_loader)
@@ -156,9 +162,9 @@ def main():
                 dl= make_loader(train_test_id, args.image_path, args, train=True, shuffle=True)
                 for input_, input_labels in dl:
                     input_tensor = input_.permute(0, 3, 1, 2)
-                    input_tensor = input_tensor.to(device).type(torch.FloatTensor)
+                    input_tensor = input_tensor.to(device).type(torch.cuda.FloatTensor)
                     input_tensor.requires_grad = True
-                    input_labels = input_labels.to(device).type(torch.FloatTensor)
+                    input_labels = input_labels.to(device).type(torch.cuda.FloatTensor)
 
                     out = bootstrap_models[0](input_tensor)
                     loss = criterion(out, input_labels)
