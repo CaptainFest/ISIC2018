@@ -67,7 +67,7 @@ def main():
     optimizers = {}
     n_models = args.n_models
 
-    device = ('gpu')
+    device = ('cuda')
 
     # define models pool
     for i in range(n_models):
