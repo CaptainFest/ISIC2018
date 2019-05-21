@@ -17,13 +17,11 @@ from models import create_model
 
 import pandas as pd
 
-device = 0
 
 def output_tn(output):
     y_pred, y = output
     y_pred = torch.round(y_pred)
     return y_pred, y
-
 
 
 def main():
@@ -63,13 +61,13 @@ def main():
     print('--' * 10)
 
     cudnn.benchmark = True
-    # torch.set_default_tensor_type(torch.cuda.FloatTensor)
+    torch.set_default_tensor_type(torch.cuda.FloatTensor)
 
     bootstrap_models = {}
     optimizers = {}
     n_models = args.n_models
 
-    device = ('cpu')
+    device = ('gpu')
 
     # define models pool
     for i in range(n_models):
@@ -91,11 +89,11 @@ def main():
                 for i, (train_image_batch, train_labels_batch) in enumerate(train_loader):
 
                     if i % 50 == 0:
-                        print(f'\rBatch {i} / {n1}', end='')
+                        print(f'\rBatch {i} / {n1} ', end='')
 
                     train_image_batch = train_image_batch.permute(0, 3, 1, 2)
-                    train_image_batch = train_image_batch.to(device).type(torch.FloatTensor)
-                    train_labels_batch = train_labels_batch.to(device).type(torch.FloatTensor)
+                    train_image_batch = train_image_batch.to(device).type(torch.cuda.FloatTensor)
+                    train_labels_batch = train_labels_batch.to(device).type(torch.cuda.FloatTensor)
 
                     output_probs = bootstrap_models[model_id](train_image_batch)
 
@@ -129,12 +127,14 @@ def main():
                     prec = Precision(average=True, is_multilabel=True)
                     rec = Recall(average=True, is_multilabel=True)
                     for i, (valid_image_batch, valid_labels_batch) in enumerate(valid_loader):
-                        print(f'\rBatch {i} / {n2}', end='')
-                        valid_image_batch = valid_image_batch.permute(0, 3, 1, 2).to(device).type(torch.FloatTensor)
-                        valid_labels_batch = valid_labels_batch.to(device).type(torch.FloatTensor)
+                        print(f'\rBatch {i} / {n2} ', end='')
+
+                        valid_image_batch = valid_image_batch.permute(0, 3, 1, 2).to(device).type(torch.cuda.FloatTensor)
+                        valid_labels_batch = valid_labels_batch.to(device).type(torch.cuda.FloatTensor)
 
                         output_probs = bootstrap_models[0](valid_image_batch)
-                        print(output_probs)
+                        if ep == args.n_epochs - 1:
+                            print(output_probs)
                         outputs = (output_probs > 0.5)
 
                         criterion = nn.BCEWithLogitsLoss()
@@ -157,9 +157,7 @@ def main():
                 for input_, input_labels in dl:
                     input_tensor = input_.permute(0, 3, 1, 2)
                     input_tensor = input_tensor.to(device).type(torch.FloatTensor)
-                    input_tensor
                     input_tensor.requires_grad = True
-                    print(input_tensor)
                     input_labels = input_labels.to(device).type(torch.FloatTensor)
 
                     out = bootstrap_models[0](input_tensor)
@@ -168,7 +166,6 @@ def main():
                     print(input_tensor.grad)
 
                     return
-                return
                 pass
                 # trainer = Trainer(data_path, mask_path)
                 # trainer.AL_step()

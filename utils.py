@@ -62,12 +62,6 @@ def write_valid_event(log, valid_metrics):
     log.flush()
 
 
-def print_model_summay(model):
-    for name, para in model.named_parameters():
-        print(name, para.numel(), para.requires_grad)
-    return None
-
-
 def set_freeze_layers(model, freeze_layer_names=None):
     for name, para in model.named_parameters():
         if freeze_layer_names is None:
@@ -101,7 +95,4 @@ def get_freeze_layer_names(model,part):
         if part == 'encoder':
             if re.search('center', name):
                 freeze_layers.append(name)
-    # for ly in layers:
-    #     if not layers[ly]:
-    #         freeze_layers.append(ly)
     return freeze_layers
