@@ -57,9 +57,11 @@ def create_model(args, device):
     for param in model.parameters():
         param.requires_grad = False
 
+    # channels replacement
     if args.model in ['resnet50', 'resnet152']:
-        num_ftrs = model.fc.in_features
-        model.fc = nn.Linear(num_ftrs, out_shape)
+        model.conv1 = nn.Conv2d(8, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False)
+        last_layer_in_channels = model.fc.in_features
+        model.fc = nn.Linear(last_layer_in_channels, out_shape)
     elif args.model == 'vgg16':
         num_ftrs = model.classifier[6].in_features
         model.classifier[6] = nn.Linear(num_ftrs, out_shape)
