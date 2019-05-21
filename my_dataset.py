@@ -12,7 +12,7 @@ import numpy as np
 
 class MyDataset(Dataset):
 
-    def __init__(self, train_test_id, image_path, train, pretrained, augment_list):
+    def __init__(self, train_test_id, image_path, train, pretrained, augment_list, act):
 
         self.train_test_id = train_test_id
         self.image_path = image_path
@@ -20,6 +20,7 @@ class MyDataset(Dataset):
         self.pretrained = pretrained
         self.augment_list = augment_list
         self.mask_ind = pd.read_csv('mask_ind.csv')
+        self.act = act
 
         if self.train:
             self.mask_ind = self.mask_ind[self.train_test_id['Split'] == 'train'].values.astype('uint8')

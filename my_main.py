@@ -81,19 +81,21 @@ def main():
     if args.show_model:
         print(bootstrap_models[0])
 
+    prec = Precision(average=True, is_multilabel=True)
+    rec = Recall(average=True, is_multilabel=True)
+    prec2 = Precision(is_multilabel=True)
+    rec2 = Recall(is_multilabel=True)
+    f1_score = MetricsLambda(f1, rec2, prec2)
+
     for ep in range(epoch, args.n_epochs + 1):
         try:
             start_time = time.time()
             for model_id in range(n_models):
                 # state = load_weights(model_id)
                 # model.load_state_dict(state['model'])
-
-                prec = Precision(average=True, is_multilabel=True)
-                rec = Recall(average=True, is_multilabel=True)
-                prec2 = Precision(is_multilabel=True)
-                rec2 = Recall(is_multilabel=True)
-                f1_score = MetricsLambda(f1, rec2, prec2)
                 ##################################### training #############################################
+                if args.mode in ['classic_AL', 'grid_AL']:
+                    train_loader = make_loader(train_test_id, args.image_path, args, train=True, shuffle=True, act=True)
                 n1 = len(train_loader)
                 for i, (train_image_batch, train_labels_batch, names) in enumerate(train_loader):
                     if i % 50 == 0:
@@ -112,10 +114,7 @@ def main():
                     loss.backward()
                     optimizers[model_id].step()
                     step += 1
-                    #print(train_labels_batch)
-                    #print(output_probs)
-                    #sf = torch.nn.Softmax(dim=1)
-                    #print(sf(output_probs))
+
                     outputs = torch.sigmoid(output_probs)
                     outputs = (outputs > 0.5)
 
