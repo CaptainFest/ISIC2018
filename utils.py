@@ -9,21 +9,17 @@ import torch
 import torchvision
 
 
-def load_image(image_file):
-    f = h5py.File(image_file, 'r')
-    img_np = f['img'][()]
-    img_np = (img_np / 255.0).astype('float32')
-    return img_np
-
-
-def load_mask(image_path, img_id):
-
-    mask_file = image_path + '%s_attribute_all.h5'%(img_id)
-    f = h5py.File(mask_file, 'r')
-    mask_np = f['img'].value
-
-    mask_np = mask_np.astype('uint8')
-    return mask_np
+def load_image(file_name, type='image'):
+    f = h5py.File(file_name, 'r')
+    file_np = f['img'][()]
+    if type == 'image':
+        file_np = (file_np / 255.0).astype('float32')
+    elif type == 'mask':
+        file_np = file_np.astype('uint8')
+    else:
+        print('not choosed type to load')
+        return
+    return file_np
 
 
 def save_weights(model, model_id, model_path, ep, step, train_metrics, valid_metrics):
