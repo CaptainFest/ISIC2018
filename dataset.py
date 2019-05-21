@@ -5,7 +5,6 @@ import numpy as np
 
 from torch.utils.data import Dataset, DataLoader
 from utils import load_image, load_mask
-from torchvision import transforms
 import torchvision.transforms.functional as TF
 from torch import nn
 from keras.preprocessing.image import array_to_img, img_to_array
