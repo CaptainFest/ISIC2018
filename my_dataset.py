@@ -98,7 +98,7 @@ class MyDataset(Dataset):
 
         labels = self.mask_ind[index, :]
 
-        return image_with_mask, labels
+        return image_with_mask, labels, name
 
 
 def make_loader(train_test_id, image_path, args, train=True, shuffle=True):

@@ -50,7 +50,6 @@ def create_model(args, device):
             model = models.resnet152(pretrained=True)
         else:
             model = models.resnet152()
-            print(model)
     else:
         return
 
