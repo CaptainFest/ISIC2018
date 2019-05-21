@@ -42,13 +42,19 @@ def create_model(args, device):
             model = models.resnet50(pretrained=True)
         else:
             model = models.resnet50()
+    elif args.model == 'resnet152':
+        if args.pretrained:
+            model = models.resnet152(pretrained=True)
+        else:
+            model = models.resnet152()
+            print(model)
     else:
         return
 
     for param in model.parameters():
         param.requires_grad = False
 
-    if args.model == 'resnet50':
+    if args.model in ['resnet50', 'resnet152']:
         num_ftrs = model.fc.in_features
         model.fc = nn.Linear(num_ftrs, 5)
     elif args.model == 'vgg16':
