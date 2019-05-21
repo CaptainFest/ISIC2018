@@ -16,15 +16,11 @@ def load_image(image_file):
     return img_np
 
 
-def load_mask(image_path, img_id, attribute='pigment_network'):
-    if attribute == 'all':
-        mask_file = image_path + '%s_attribute_all.h5' % (img_id)
-        f = h5py.File(mask_file, 'r')
-        mask_np = f['img'].value
-    else:
-        mask_file = image_path + '%s_attribute_%s.h5' % (img_id, attribute)
-        f = h5py.File(mask_file, 'r')
-        mask_np = f['img'].value
+def load_mask(image_path, img_id):
+
+    mask_file = image_path + '%s_attribute_all.h5'%(img_id)
+    f = h5py.File(mask_file, 'r')
+    mask_np = f['img'].value
 
     mask_np = mask_np.astype('uint8')
     return mask_np

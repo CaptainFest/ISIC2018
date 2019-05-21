@@ -26,6 +26,9 @@ class ResNet50(nn.Module):
 
 
 def create_model(args, device):
+
+    out_shape = 5
+
     if args.model == 'vgg16':
         if args.pretrained:
             if args.batch_normalization:
@@ -56,12 +59,11 @@ def create_model(args, device):
 
     if args.model in ['resnet50', 'resnet152']:
         num_ftrs = model.fc.in_features
-        model.fc = nn.Linear(num_ftrs, 5)
+        model.fc = nn.Linear(num_ftrs, out_shape)
     elif args.model == 'vgg16':
         num_ftrs = model.classifier[6].in_features
-        model.classifier[6] = nn.Linear(num_ftrs, 5)
+        model.classifier[6] = nn.Linear(num_ftrs, out_shape)
 
-    # device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     model.to(device)
 
     optimizer = Adam(model.parameters(), lr=args.lr)

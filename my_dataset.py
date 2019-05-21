@@ -4,7 +4,7 @@ import torch
 import torchvision.transforms.functional as TF
 from keras.preprocessing.image import array_to_img, img_to_array
 from torch.utils.data import Dataset, DataLoader
-from utils import load_image
+from utils import load_image, load_mask
 import pandas as pd
 import random
 import numpy as np
@@ -31,26 +31,33 @@ class MyDataset(Dataset):
             print('Train =', self.train, 'train_test_id.shape: ', self.train_test_id.shape)
         self.n = self.train_test_id.shape[0]
 
-
     def __len__(self):
         return self.n
 
-    def transform_fn(self, image):
+    def transform_fn(self, image, mask):
 
         image = array_to_img(image, data_format="channels_last")
+        mask_pil_array = [None] * mask.shape[-1]
+        for i in range(mask.shape[-1]):
+             mask_pil_array[i] = array_to_img(mask[:, :, i, np.newaxis], data_format="channels_last")
 
         if 'hflip' in self.augment_list:
             if random.random() > 0.5:
                 image = TF.hflip(image)
+                for i in range(mask.shape[-1]):
+                    mask_pil_array[i] = TF.hflip(mask_pil_array[i])
         if 'vflip' in self.augment_list:
             if random.random() > 0.5:
                 image = TF.vflip(image)
+                for i in range(mask.shape[-1]):
+                    mask_pil_array[i] = TF.vflip(mask_pil_array[i])
         if 'affine' in self.augment_list:
-            if random.random() > 0.5:
-                angle = random.randint(0, 90)
-                translate = (random.uniform(0, 100), random.uniform(0, 100))
-                scale = random.uniform(0.5, 2)
-                image = TF.affine(image, angle=angle, translate=translate, scale=scale)
+            angle = random.randint(0, 90)
+            translate = (random.uniform(0, 100), random.uniform(0, 100))
+            scale = random.uniform(0.5, 2)
+            image = TF.affine(image, angle, translate, scale)
+            for i in range(mask.shape[-1]):
+                mask_pil_array[i] = TF.affine(mask_pil_array[i], angle, translate, scale)
         if 'adjust_brightness' in self.augment_list:
             if random.random() > 0.5:
                 brightness_factor = random.uniform(0.8, 1.2)
@@ -61,30 +68,39 @@ class MyDataset(Dataset):
                 image = TF.adjust_saturation(image, saturation_factor)
 
         image = img_to_array(image, data_format="channels_last")
+        for i in range(mask.shape[-1]):
+            mask[:, :, i] = img_to_array(mask_pil_array[i], data_format="channels_last")[:, :, 0].astype('uint8')
+
         image = (image / 255.0).astype('float32')
+        mask = (mask / 255.0).astype('uint8')
 
         if self.pretrained:
             mean = np.array([0.485, 0.456, 0.406])
             std = np.array([0.229, 0.224, 0.225])
             image = (image - mean)/std
 
-        return image
+        return image, mask
 
     def __getitem__(self, index):
 
-        image_name = self.train_test_id[index]
+        name = self.train_test_id[index]
         path = self.image_path
 
-        # Load image from h5
-        image = load_image(os.path.join(path, image_name + '.h5'))
+        # Load image and from h5
+        image = load_image(os.path.join(path, name + '.h5'))
+        mask = load_mask(path, name)
 
         if self.train:
             if self.augment_list:
-                image = self.transform_fn(image)
+                image, mask = self.transform_fn(image, mask)
+
+        image_with_mask = np.stack(image, mask)
+        print(image_with_mask.shape)
+        return
 
         labels = self.mask_ind[index, :]
 
-        return image, labels
+        return image_with_mask, labels
 
 
 def make_loader(train_test_id, image_path, args, train=True, shuffle=True):
