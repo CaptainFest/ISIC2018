@@ -10,7 +10,7 @@ import torchvision
 from torch import nn
 from torch.backends import cudnn
 import torch.nn.functional as F
-from utils import save_weights, write_event,print_model_summay
+from utils import save_weights, write_event
 
 from my_dataset import make_loader
 from models import create_model
