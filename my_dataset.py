@@ -108,7 +108,7 @@ class ActiveDataset(Dataset):
         self.train_test_id = train_test_id
         self.image_path = args.image_path
         self.train_test_id = self.train_test_id.iloc[ids, :][self.train_test_id['Split'] == 'train'].ID.values
-        print('Active_phase ','train_test_id.shape: ', self.train_test_id.shape)
+        print('Active_phase ', 'train_test_id.shape: ', self.train_test_id.shape)
         self.n = self.train_test_id.shape[0]
 
     def __len__(self):

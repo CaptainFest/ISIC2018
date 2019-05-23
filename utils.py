@@ -4,7 +4,9 @@ import re
 import numpy as np
 import h5py
 import torch
-import math
+import pandas as pd
+import os
+import sys
 
 
 def load_image(file_name, type='image'):
@@ -86,3 +88,24 @@ def get_freeze_layer_names(model,part):
             if re.search('center', name):
                 freeze_layers.append(name)
     return freeze_layers
+
+
+class ResultAndArgsSaver:
+
+    def __init__(self, args):
+        self.data = pd.DataFrame(columns=['epoch', 'time', 'loss', 'precision', 'recall', 'f1_score'])
+        self.model_name = args.model
+
+    def update(self, results):
+        self.data = self.data.append(results)
+
+    def save_train_epoch(self):
+        if not os.path.exists(self.model_name):
+            os.mkdir(self.model_name)
+        with open('commandline_args.txt', 'w') as f:
+            f.write('\n'.join(sys.argv[1:]))
+        self.data.to_csv(os.path.join(self.model_name,'train_rez.csv'), index=False)
+
+
+    def save_valid_epoch(self):
+        self.data.to_csv('valid_rez.csv', index=False)
