@@ -1,12 +1,10 @@
 import json
 import re
-from pathlib import Path
 
-import random
 import numpy as np
 import h5py
 import torch
-import torchvision
+import math
 
 
 def load_image(file_name, type='image'):
