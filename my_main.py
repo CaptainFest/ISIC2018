@@ -27,10 +27,10 @@ def f1(r, p):
 def main():
     parser = argparse.ArgumentParser()
     arg = parser.add_argument
-    arg('--model', type=str, default='vgg16', choices=['vgg16', 'resnet50', 'resnet152'])
+    arg('--model', type=str, default='vgg16', choices=['vgg16', 'resnet50', 'resnet152', 'inception_v3'])
     arg('--batch-normalization', action='store_true')  # if --batch-normalization parameter then True
     arg('--pretrained', action='store_true')           # if --pretrained parameter then True
-    arg('--lr', type=int, default=0.001)
+    arg('--lr', type=float, default=0.001)
     arg('--batch-size', type=int, default=1)
     arg('--workers', type=int, default=1)
     arg('--augment-list', type=list, nargs='*', default=[])
@@ -42,6 +42,8 @@ def main():
     arg('--show-model', action='store_true')
     arg('--uncertain_select_num', type=int, default=10)
     arg('--representative_select_num', type=int, default=5)
+    arg('--output_transform_function', type=str, default='sigmoid', choices=['sigmoid', 'tanh'])
+    arg('--conv_learn_disabled', action='store_false')   # if --conv-learn-disabled parameter then False
     arg('--mode', type=str, default='simple', choices=['simple', 'classic_AL', 'grid_AL'])
     args = parser.parse_args()
 
@@ -131,8 +133,12 @@ def main():
                     step += 1
 
                     if model_id == 0:
-                        outputs = torch.sigmoid(output_probs)
-                        outputs = (outputs > 0.5)
+                        if args.output_transform_fucntion == 'sigmoid':
+                            outputs = torch.sigmoid(output_probs)
+                            outputs = (outputs > 0.5)
+                        elif args.output_transform_function == 'tanh':
+                            outputs = torch.tanh(output_probs)
+                            outputs = (outputs > 0.0)
 
                         prec.update((outputs, train_labels_batch))
                         rec.update((outputs, train_labels_batch))
@@ -175,8 +181,12 @@ def main():
                     if ep == args.n_epochs - 1:
                         print(output_probs)
 
-                    outputs = torch.sigmoid(output_probs)
-                    outputs = (outputs > 0.5)
+                    if args.output_transform_fucntion == 'sigmoid':
+                        outputs = torch.sigmoid(output_probs)
+                        outputs = (outputs > 0.5)
+                    elif args.output_transform_function == 'tanh':
+                        outputs = torch.tanh(output_probs)
+                        outputs = (outputs > 0.0)
 
                     loss = criterion(output_probs, valid_labels_batch)
 

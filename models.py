@@ -1,28 +1,6 @@
 from torch import nn
-import torch
 from torchvision import models
-import torchvision
 from torch.optim import Adam
-from torch.nn import functional as F
-
-
-class ResNet50(nn.Module):
-    def __init__(self, num_classes):
-        super(ResNet50, self).__init__()
-
-        model = models.resnet50(pretrained=True)
-        self.features = nn.Sequential(*list(model.children())[:-1])
-        num_feats = model.fc.in_features
-
-        self.classifier = nn.Sequential(
-            nn.Linear(num_feats, num_classes)
-        )
-
-    def forward(self, x):
-        f = self.features(x)
-        f = f.view(f.size(0), -1)
-        y = self.classifier(f)
-        return y
 
 
 def create_model(args, device):
@@ -50,11 +28,17 @@ def create_model(args, device):
             model = models.resnet152(pretrained=True)
         else:
             model = models.resnet152()
+    elif args.model == 'inception_v3':
+        if args.pretrained:
+            model = models.inception_v3(pretrained=True)
+        else:
+            model = models.inception_v3()
     else:
         return
 
-    for param in model.parameters():
-        param.requires_grad = False
+    if args.conv_learn_enabled:
+        for param in model.parameters():
+            param.requires_grad = False
 
     # channels replacement
     if args.model in ['resnet50', 'resnet152']:
@@ -62,11 +46,14 @@ def create_model(args, device):
         last_layer_in_channels = model.fc.in_features
         model.fc = nn.Linear(last_layer_in_channels, out_shape)
     elif args.model == 'vgg16':
+        model.features[0] = nn.Conv2d(8, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
         num_ftrs = model.classifier[6].in_features
         model.classifier[6] = nn.Linear(num_ftrs, out_shape)
-
+    elif args.model == 'inception_v3':
+        model.Conv2d_1a_3x3.conv = nn.Conv2d(8, 32, kernel_size=(3, 3), stride=(2, 2), bias=False)
+        last_layer_in_channels = model.fc.in_features
+        model.fc = nn.Linear(last_layer_in_channels, out_shape)
     model.to(device)
-
     optimizer = Adam(model.parameters(), lr=args.lr)
 
     return model, optimizer
