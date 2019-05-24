@@ -41,7 +41,8 @@ def main():
     arg('--begin-number', type=int, default=20)
     arg('--show-model', action='store_true')
     arg('--uncertain_select_num', type=int, default=10)
-    arg('--representative_select_num', type=int, default=5)
+    arg('--representative-select-num', type=int, default=5)
+    arg('--square-size', type=int, daefault=16)
     arg('--output_transform_function', type=str, default='sigmoid', choices=['sigmoid', 'tanh'])
     arg('--conv_learn_disabled', action='store_false')   # if --conv-learn-disabled parameter then False
     arg('--mode', type=str, default='simple', choices=['simple', 'classic_AL', 'grid_AL'])
@@ -60,8 +61,8 @@ def main():
         annotated = np.random.choice(indexes, args.begin_number, replace=False)
         non_annotated = np.setxor1d(indexes, annotated)
 
-    train_loader = make_loader(train_test_id, mask_ind, args, annotated,  batch_size=args.batch_size, train=True, shuffle=True)
-    # valid_loader = make_loader(train_test_id, mask_ind, args, annotated_set,  batch_size=args.batch_size, train=False, shuffle=True)
+    train_loader = make_loader(train_test_id, mask_ind, args, annotated,  batch_size=args.batch_size, train=True,
+                               shuffle=True)
 
     if True:
         print('--' * 10)
