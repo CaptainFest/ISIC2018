@@ -15,8 +15,8 @@ parser = argparse.ArgumentParser()
 arg = parser.add_argument
 arg('--batch-size', type=int, default=1)
 arg('--image-path', type=str, default='/home/irek/My_work/train/h5_112/')
+arg('--workers', type=int, default=4)
 arg('--mask-path', type=str, default='/home/irek/My_work/train/binary/')
-arg('--mode', type=str, default='simple', choices=['simple', 'classic_AL', 'grid_AL'])
 args = parser.parse_args()
 non_annotated = train_test_id[train_test_id['Split'] == 'train'].index.tolist()
 most_uncertain = non_annotated
