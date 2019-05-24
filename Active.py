@@ -1,6 +1,6 @@
 import numpy as np
 import torch.nn as nn
-from my_dataset import make_loader, calculate_similarities
+from my_dataset import make_loader
 import torch
 
 
@@ -14,6 +14,7 @@ class ActiveLearningTrainer:
         self.bootstrap_models = bootstrap_models
         self.annotated = annotated
         self.non_annotated = non_annotated
+        self.sims = np.load('similarities_table.npy')
 
     def al_step(self):
         most_uncertain = self.select_uncertain()
@@ -50,14 +51,11 @@ class ActiveLearningTrainer:
         return uncertain
 
     def select_representative(self, most_uncertain):
-        train_test_id = self.train_test_id
-        mask_ind = self.mask_ind
         args = self.args
-        non_annotated = self.non_annotated
         most_representative = np.array([])
         add_image_id = 0
         with torch.no_grad():
-            cos_sim_table = calculate_similarities(train_test_id, mask_ind, args, non_annotated, most_uncertain)
+            cos_sim_table = self.sims
             cand = len(cos_sim_table.shape[0])
             nonannot = len(cos_sim_table.shape[1])
             array_of_maximums = np.zeros(nonannot)

@@ -2,22 +2,23 @@ import os
 import torch.nn
 import time
 import argparse
-# import sklearn.metrics as metrics
+from pathlib import Path
 from ignite.metrics import Precision, Recall, MetricsLambda
+import pandas as pd
+import numpy as np
 
 import torch
 import torchvision
 from torch import nn
 from torch.backends import cudnn
 import torch.nn.functional as F
-#from utils import save_weights, write_event
+from tensorboardX import SummaryWriter
 
+
+from utils import write_event, write_tensorboard
 from my_dataset import make_loader
 from models import create_model
 from Active import ActiveLearningTrainer
-
-import pandas as pd
-import numpy as np
 
 
 def f1(r, p):
@@ -28,6 +29,7 @@ def main():
     parser = argparse.ArgumentParser()
     arg = parser.add_argument
     arg('--model', type=str, default='vgg16', choices=['vgg16', 'resnet50', 'resnet152', 'inception_v3'])
+    arg('--root', type=str, default='runs/debug')
     arg('--batch-normalization', action='store_true')  # if --batch-normalization parameter then True
     arg('--pretrained', action='store_true')           # if --pretrained parameter then True
     arg('--lr', type=float, default=0.001)
@@ -50,6 +52,9 @@ def main():
 
     epoch = 1
     step = 0
+
+    root = Path(args.root)
+    root.mkdir(exist_ok=True, parents=True)
 
     train_test_id = pd.read_csv('train_test_id.csv')
     mask_ind = pd.read_csv('mask_ind.csv')
@@ -99,6 +104,9 @@ def main():
 
     criterion = nn.BCEWithLogitsLoss()
 
+    log = root.joinpath('train.log').open('at', encoding='utf8')
+    writer = SummaryWriter()
+
     for ep in range(epoch, args.n_epochs + 1):
         try:
             start_time = time.time()
@@ -111,7 +119,7 @@ def main():
                     subset_with_replaces = np.random.choice(annotated, len(annotated), replace=True)
                     print(subset_with_replaces)
                     train_loader = make_loader(train_test_id, mask_ind, args, subset_with_replaces,
-                                               batch_size=args.batch_size, train=True, shuffle=True)
+                                               batch_size=args.batch_size, train=True, shuffle=True, annotated_np=annotated)
                 else:
                     train_loader = make_loader(train_test_id, mask_ind, args, annotated,
                                                batch_size=args.batch_size, train=True, shuffle=True)
@@ -150,23 +158,23 @@ def main():
 
                 epoch_time = time.time() - start_time
 
-                if model_id == 0:
-                    train_metrics = {'loss': loss,
-                                     'precision': prec.compute(),
-                                     'recall': rec.compute(),
-                                     'f1_score': f1_score.compute(),
-                                     'epoch_time': epoch_time}
-                    print('Epoch: {} Loss: {:.6f} Prec: {:.4f} Recall: {:.4f} F1: {:.4f} Time: {:.4f}'.format(
-                                                                 ep,
-                                                                 train_metrics['loss'],
-                                                                 train_metrics['precision'],
-                                                                 train_metrics['recall'],
-                                                                 train_metrics['f1_score'],
-                                                                 train_metrics['epoch_time']))
-                    prec.reset()
-                    prec2.reset()
-                    rec.reset()
-                    rec2.reset()
+            if model_id == 0:
+                train_metrics = {'loss': loss,
+                                 'precision': prec.compute(),
+                                 'recall': rec.compute(),
+                                 'f1_score': f1_score.compute(),
+                                 'epoch_time': epoch_time}
+                print('Epoch: {} Loss: {:.6f} Prec: {:.4f} Recall: {:.4f} F1: {:.4f} Time: {:.4f}'.format(
+                                                             ep,
+                                                             train_metrics['loss'],
+                                                             train_metrics['precision'],
+                                                             train_metrics['recall'],
+                                                             train_metrics['f1_score'],
+                                                             train_metrics['epoch_time']))
+                prec.reset()
+                prec2.reset()
+                rec.reset()
+                rec2.reset()
             ##################################### validation ###########################################
             valid_loader = make_loader(train_test_id, mask_ind, args, annotated, batch_size=args.batch_size, train=False, shuffle=True)
             with torch.no_grad():
@@ -211,6 +219,9 @@ def main():
             rec.reset()
             rec2.reset()
 
+            write_event(log, train_metrics=train_metrics, valid_metrics=valid_metrics)
+
+            write_tensorboard(writer, epoch, train_metrics, valid_metrics)
                 # write_event(log, epoch=epoch, train_metrics=train_metrics, valid_metrics=valid_metrics)
 
             if args.mode in ['classic_AL', 'grid_AL']:
