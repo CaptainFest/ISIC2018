@@ -42,11 +42,11 @@ def main():
     arg('--K-models', type=int, default=5)
     arg('--begin-number', type=int, default=20)
     arg('--show-model', action='store_true')
-    arg('--uncertain_select_num', type=int, default=10)
+    arg('--uncertain_select-num', type=int, default=10)
     arg('--representative-select-num', type=int, default=5)
-    arg('--square-size', type=int, daefault=16)
-    arg('--output_transform_function', type=str, default='sigmoid', choices=['sigmoid', 'tanh'])
-    arg('--conv_learn_disabled', action='store_false')   # if --conv-learn-disabled parameter then False
+    arg('--square-size', type=int, default=16)
+    arg('--output-transform-function', type=str, default='sigmoid', choices=['sigmoid', 'tanh'])
+    arg('--conv-learn-disabled', action='store_false')   # if --conv-learn-disabled parameter then False
     arg('--mode', type=str, default='simple', choices=['simple', 'classic_AL', 'grid_AL'])
     args = parser.parse_args()
 
@@ -105,7 +105,7 @@ def main():
     criterion = nn.BCEWithLogitsLoss()
 
     log = root.joinpath('train.log').open('at', encoding='utf8')
-    writer = SummaryWriter()
+    writer = SummaryWriter('runs')
 
     for ep in range(epoch, args.n_epochs + 1):
         try:
@@ -142,7 +142,7 @@ def main():
                     step += 1
 
                     if model_id == 0:
-                        if args.output_transform_fucntion == 'sigmoid':
+                        if args.output_transform_function == 'sigmoid':
                             outputs = torch.sigmoid(output_probs)
                             outputs = (outputs > 0.5)
                         elif args.output_transform_function == 'tanh':
@@ -158,23 +158,23 @@ def main():
 
                 epoch_time = time.time() - start_time
 
-            if model_id == 0:
-                train_metrics = {'loss': loss,
-                                 'precision': prec.compute(),
-                                 'recall': rec.compute(),
-                                 'f1_score': f1_score.compute(),
-                                 'epoch_time': epoch_time}
-                print('Epoch: {} Loss: {:.6f} Prec: {:.4f} Recall: {:.4f} F1: {:.4f} Time: {:.4f}'.format(
-                                                             ep,
-                                                             train_metrics['loss'],
-                                                             train_metrics['precision'],
-                                                             train_metrics['recall'],
-                                                             train_metrics['f1_score'],
-                                                             train_metrics['epoch_time']))
-                prec.reset()
-                prec2.reset()
-                rec.reset()
-                rec2.reset()
+            train_metrics = {'epoch': ep,
+                             'loss': loss,
+                             'precision': prec.compute(),
+                             'recall': rec.compute(),
+                             'f1_score': f1_score.compute(),
+                             'epoch_time': epoch_time}
+            print('Epoch: {} Loss: {:.6f} Prec: {:.4f} Recall: {:.4f} F1: {:.4f} Time: {:.4f}'.format(
+                                                         train_metrics['epoch'],
+                                                         train_metrics['loss'],
+                                                         train_metrics['precision'],
+                                                         train_metrics['recall'],
+                                                         train_metrics['f1_score'],
+                                                         train_metrics['epoch_time']))
+            prec.reset()
+            prec2.reset()
+            rec.reset()
+            rec2.reset()
             ##################################### validation ###########################################
             valid_loader = make_loader(train_test_id, mask_ind, args, annotated, batch_size=args.batch_size, train=False, shuffle=True)
             with torch.no_grad():
@@ -190,7 +190,7 @@ def main():
                     if ep == args.n_epochs - 1:
                         print(output_probs)
 
-                    if args.output_transform_fucntion == 'sigmoid':
+                    if args.output_transform_function == 'sigmoid':
                         outputs = torch.sigmoid(output_probs)
                         outputs = (outputs > 0.5)
                     elif args.output_transform_function == 'tanh':
@@ -221,7 +221,7 @@ def main():
 
             write_event(log, train_metrics=train_metrics, valid_metrics=valid_metrics)
 
-            write_tensorboard(writer, epoch, train_metrics, valid_metrics)
+            write_tensorboard(writer, train_metrics, valid_metrics)
                 # write_event(log, epoch=epoch, train_metrics=train_metrics, valid_metrics=valid_metrics)
 
             if args.mode in ['classic_AL', 'grid_AL']:
@@ -233,6 +233,7 @@ def main():
                 return
         except KeyboardInterrupt:
             return
+        writer.close()
 
 
 if __name__ == "__main__":
