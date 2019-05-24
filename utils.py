@@ -22,17 +22,12 @@ def load_image(file_name, type='image'):
     return file_np
 
 
-def write_tensorboard(writer, epoch, train_metrics, valid_metrics):
+def write_tensorboard(writer, train_metrics, valid_metrics):
 
-    valid_loss = valid_metrics['loss']
-    train_loss = train_metrics['loss']
-    train_precision, valid_precision = train_metrics['precision'], valid_metrics['precision']
-    train_recall, valid_recall = train_metrics['recall'],valid_metrics['recall']
-    train_f1_score, valid_f1_score = train_metrics['f1_score'], valid_metrics['f1_score']
-    writer.add_scalars('loss', {'train': train_loss, 'valid': valid_loss}, epoch)
-    writer.add_scalars('precision', {'train': train_precision, 'valid': valid_precision}, epoch)
-    writer.add_scalars('recall', {'train': train_recall, 'valid': valid_recall}, epoch)
-    writer.add_scalars('f1_score', {'train': train_f1_score, 'valid': valid_f1_score}, epoch)
+    writer.add_scalars('loss', {'train': train_metrics['loss'], 'valid': valid_metrics['loss']}, train_metrics['epoch'])
+    writer.add_scalars('precision', {'train': train_metrics['precision'], 'valid': valid_metrics['precision']}, train_metrics['epoch'])
+    writer.add_scalars('recall', {'train': train_metrics['recall'], 'valid': valid_metrics['recall']}, train_metrics['epoch'])
+    writer.add_scalars('f1_score', {'train': train_metrics['f1_score'], 'valid': valid_metrics['f1_score']}, train_metrics['epoch'])
 
 
 def save_weights(model, model_path, ep, train_metrics, valid_metrics):
@@ -93,7 +88,6 @@ class ResultAndArgsSaver:
         with open('commandline_args.txt', 'w') as f:
             f.write('\n'.join(sys.argv[1:]))
         self.data.to_csv(os.path.join(self.model_name,'train_rez.csv'), index=False)
-
 
     def save_valid_epoch(self):
         self.data.to_csv('valid_rez.csv', index=False)

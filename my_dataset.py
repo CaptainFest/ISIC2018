@@ -135,7 +135,7 @@ class ActiveDataset(Dataset):
 
 
 def make_loader(train_test_id, labels_ids, args, ids, batch_size, train=True, active_phase=False, shuffle=True,
-                annotated_np=np.empty()):
+                annotated_np=np.array([])):
 
     if not active_phase:
         data_set = MyDataset(train_test_id=train_test_id,
@@ -143,7 +143,7 @@ def make_loader(train_test_id, labels_ids, args, ids, batch_size, train=True, ac
                              args=args,
                              train=train,
                              ids=ids,
-                             annotated_np)
+                             annotated_np=annotated_np)
     else:
         data_set = ActiveDataset(train_test_id=train_test_id,
                                  args=args,
