@@ -30,11 +30,11 @@ class MyDataset(Dataset):
             else:
                 self.labels_ids = self.labels_ids[self.train_test_id['Split'] == 'train'].values.astype('uint8')
                 self.train_test_id = self.train_test_id[self.train_test_id['Split'] == 'train'].ID.values
-                print('Train =', self.train, 'train_test_id.shape: ', self.train_test_id.shape)
+                # print('Train =', self.train, 'train_test_id.shape: ', self.train_test_id.shape)
         else:
             self.labels_ids = self.labels_ids[self.train_test_id['Split'] != 'train'].values.astype('uint8')
             self.train_test_id = self.train_test_id[self.train_test_id['Split'] != 'train'].ID.values
-            print('Train =', self.train, 'train_test_id.shape: ', self.train_test_id.shape)
+            # print('Train =', self.train, 'train_test_id.shape: ', self.train_test_id.shape)
         self.n = self.train_test_id.shape[0]
 
     def __len__(self):
