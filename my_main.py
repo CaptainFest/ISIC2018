@@ -105,7 +105,9 @@ def main():
     criterion = nn.BCEWithLogitsLoss()
 
     log = root.joinpath('train.log').open('at', encoding='utf8')
-    writer = SummaryWriter('runs')
+
+    writer = SummaryWriter()
+
 
     for ep in range(epoch, args.n_epochs + 1):
         try:
