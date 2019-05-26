@@ -45,7 +45,7 @@ def main():
     arg('--representative-select-num', type=int, default=5)
     arg('--square-size', type=int, default=16)
     arg('--output-transform-function', type=str, default='sigmoid', choices=['sigmoid', 'tanh'])
-    arg('--conv-learn-disabled', action='store_false')   # if --conv-learn-disabled parameter then False
+    arg('--conv-learn-enabled', action='store_true')   # if --conv-learn-enabled parameter then True
     arg('--mode', type=str, default='simple', choices=['simple', 'classic_AL', 'grid_AL'])
     args = parser.parse_args()
 
@@ -116,7 +116,10 @@ def main():
             for model_id in range(K_models):
                 # state = load_weights(model_id)
                 # model.load_state_dict(state['model'])
-
+                if args.pretrained:
+                    if ep == 50:
+                        for param in bootstrap_models[model_id].parameters():
+                            param.requires_grad = True
                 ##################################### training #############################################
                 if model_id != 0:
                     subset_with_replaces = np.random.choice(annotated, len(annotated), replace=True)

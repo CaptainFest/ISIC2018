@@ -36,7 +36,7 @@ def create_model(args, device):
     else:
         return
 
-    if args.conv_learn_disabled:
+    if not args.conv_learn_enabled:
         for param in model.parameters():
             param.requires_grad = False
 
