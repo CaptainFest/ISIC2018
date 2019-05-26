@@ -50,7 +50,6 @@ def main():
     args = parser.parse_args()
 
     epoch = 0
-    step = 0
 
     root = Path(args.root)
     root.mkdir(exist_ok=True, parents=True)
@@ -109,7 +108,7 @@ def main():
 
     writer = SummaryWriter()
 
-    for ep in range(epoch, args.n_epochs + 1):
+    for ep in range(epoch, args.n_epochs):
         try:
             start_time = time.time()
             for model_id in range(K_models):
@@ -142,7 +141,6 @@ def main():
                     optimizers[model_id].zero_grad()  # optimizers[model_id].zero_grad()
                     loss.backward()
                     optimizers[model_id].step()
-                    step += 1
 
                     if model_id == 0:
                         if args.output_transform_function == 'sigmoid':
