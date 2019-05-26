@@ -24,9 +24,9 @@ def load_image(ind, img_id):
     img_np = img_to_array(img)
     ### only 0-255 integers
     img_np = img_np.astype(np.uint8)
-    #hdf5_file = h5py.File(save_path + '%s.h5' % img_id, 'w')
-    #hdf5_file.create_dataset('img', data=img_np, dtype=np.uint8)
-    #hdf5_file.close()
+    hdf5_file = h5py.File(save_path + '%s.h5' % img_id, 'w')
+    hdf5_file.create_dataset('img', data=img_np, dtype=np.uint8)
+    hdf5_file.close()
     ################
 
     attr_types = ['globules', 'milia_like_cyst', 'negative_network', 'pigment_network', 'streaks']
@@ -53,4 +53,4 @@ def get_ind(img_name):
 
 img_inds = list(map(get_ind, img_names))
 
-results = Parallel(n_jobs=4)(delayed(load_image)(ind, row) for ind,row in enumerate(img_inds))
+results = Parallel(n_jobs=8)(delayed(load_image)(ind, row) for ind,row in enumerate(img_inds))

@@ -12,7 +12,7 @@ from torch import nn
 from torch.backends import cudnn
 import torch.nn.functional as F
 from tensorboardX import SummaryWriter
-
+from torch.optim.lr_scheduler import ReduceLROnPlateau
 
 from utils import write_event, write_tensorboard
 from my_dataset import make_loader
@@ -106,6 +106,8 @@ def main():
 
     log = root.joinpath('train.log').open('at', encoding='utf8')
 
+    scheduler = ReduceLROnPlateau(optimizers[0], 'min', factor=0.8, patience=10, verbose=True)
+
     writer = SummaryWriter()
 
     for ep in range(epoch, args.n_epochs):
@@ -114,6 +116,7 @@ def main():
             for model_id in range(K_models):
                 # state = load_weights(model_id)
                 # model.load_state_dict(state['model'])
+
                 ##################################### training #############################################
                 if model_id != 0:
                     subset_with_replaces = np.random.choice(annotated, len(annotated), replace=True)
@@ -223,6 +226,8 @@ def main():
             write_event(log, train_metrics=train_metrics, valid_metrics=valid_metrics)
 
             write_tensorboard(writer, train_metrics, valid_metrics)
+
+            scheduler.step(valid_metrics['loss'])
 
             if args.mode in ['classic_AL', 'grid_AL']:
                 al_trainer = ActiveLearningTrainer(train_test_id, mask_ind, device, args, bootstrap_models, annotated, non_annotated)
