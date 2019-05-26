@@ -19,7 +19,7 @@ def load_image(ind, img_id):
     ###############
     ### load image
     image_file = image_path + '%s.jpg' % img_id
-    img = load_img(image_file, target_size=(224,224), color_mode="grayscale")  # this is a PIL image
+    img = load_img(image_file, target_size=(224,224), color_mode='rgb')  # this is a PIL image
     img_np = img_to_array(img)
     ### only 0-255 integers
     img_np = img_np.astype(np.uint8)
