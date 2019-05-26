@@ -29,11 +29,11 @@ class MyDataset(Dataset):
             else:
                 self.labels_ids = self.labels_ids[self.train_test_id['Split'] == 'train'].values.astype('uint8')
                 self.train_test_id = self.train_test_id[self.train_test_id['Split'] == 'train'].ID.values
-                # print('Train =', self.train, 'train_test_id.shape: ', self.train_test_id.shape)
+                print('Train =', self.train, 'train_test_id.shape: ', self.train_test_id.shape)
         else:
             self.labels_ids = self.labels_ids[self.train_test_id['Split'] != 'train'].values.astype('uint8')
             self.train_test_id = self.train_test_id[self.train_test_id['Split'] != 'train'].ID.values
-            # print('Train =', self.train, 'train_test_id.shape: ', self.train_test_id.shape)
+            print('Train =', self.train, 'train_test_id.shape: ', self.train_test_id.shape)
         self.n = self.train_test_id.shape[0]
 
     def __len__(self):
@@ -115,38 +115,15 @@ class MyDataset(Dataset):
         return image_with_mask, labels, name
 
 
-class ActiveDataset(Dataset):
-    def __init__(self, train_test_id, args, ids):
-        self.train_test_id = train_test_id
-        self.image_path = args.image_path
-        self.train_test_id = self.train_test_id.iloc[ids, :][self.train_test_id['Split'] == 'train'].ID.values
-        print('Active_phase ', 'train_test_id.shape: ', self.train_test_id.shape)
-        self.n = self.train_test_id.shape[0]
-
-    def __len__(self):
-        return self.n
-
-    def __getitem__(self, index):
-        name = self.train_test_id[index]
-        path = self.image_path
-        image = load_image(os.path.join(path, '%s.h5' % (name)), 'image')
-        return image, name
-
-
-def make_loader(train_test_id, labels_ids, args, ids, batch_size, train=True, active_phase=False, shuffle=True,
+def make_loader(train_test_id, labels_ids, args, ids, batch_size, train=True, shuffle=True,
                 annotated_np=np.array([])):
 
-    if not active_phase:
-        data_set = MyDataset(train_test_id=train_test_id,
-                             labels_ids=labels_ids,
-                             args=args,
-                             train=train,
-                             ids=ids,
-                             annotated_np=annotated_np)
-    else:
-        data_set = ActiveDataset(train_test_id=train_test_id,
-                                 args=args,
-                                 ids=ids)
+    data_set = MyDataset(train_test_id=train_test_id,
+                         labels_ids=labels_ids,
+                         args=args,
+                         train=train,
+                         ids=ids,
+                         annotated_np=annotated_np)
     data_loader = DataLoader(data_set,
                              batch_size=batch_size,
                              shuffle=shuffle,
