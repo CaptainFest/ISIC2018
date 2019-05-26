@@ -30,9 +30,9 @@ def create_model(args, device):
             model = models.resnet152()
     elif args.model == 'inception_v3':
         if args.pretrained:
-            model = models.inception_v3(pretrained=True)
+            model = models.inception_v3(pretrained=True, aux_logits=False)
         else:
-            model = models.inception_v3()
+            model = models.inception_v3(aux_logits=False)
     else:
         return
 
