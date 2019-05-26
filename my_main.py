@@ -1,4 +1,3 @@
-import os
 import torch.nn
 import time
 import argparse
@@ -163,7 +162,7 @@ def main():
                 epoch_time = time.time() - start_time
 
             train_metrics = {'epoch': ep,
-                             'loss': loss.item(),
+                             'loss': loss,
                              'precision': prec.compute(),
                              'recall': rec.compute(),
                              'f1_score': f1_score.compute(),
@@ -185,9 +184,9 @@ def main():
                 n2 = len(valid_loader)
 
                 for i, (valid_image_batch, valid_labels_batch, names) in enumerate(valid_loader):
-                    if i == n2-1:
+                    if i == n2-2:
                         print(f'\r', end='')
-                    else:
+                    elif i < n2-2:
                         print(f'\rBatch {i} / {n2} ', end='')
                     valid_image_batch = valid_image_batch.permute(0, 3, 1, 2).to(device).type(torch.cuda.FloatTensor)
                     valid_labels_batch = valid_labels_batch.to(device).type(torch.cuda.FloatTensor)
@@ -209,8 +208,7 @@ def main():
                     rec.update((outputs, valid_labels_batch))
                     prec2.update((outputs, valid_labels_batch))
                     rec2.update((outputs, valid_labels_batch))
-            writer.add_scalars('loss', {'train': np.array(2), 'valid': np.array(5)}, 0)
-            valid_metrics = {'loss': loss.item(),
+            valid_metrics = {'loss': loss,
                              'precision': prec.compute(),
                              'recall': rec.compute(),
                              'f1_score': f1_score.compute()}
