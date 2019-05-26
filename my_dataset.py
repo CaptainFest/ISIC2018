@@ -6,7 +6,6 @@ from torch.utils.data import Dataset, DataLoader
 from utils import load_image
 import random
 import numpy as np
-import math
 
 
 class MyDataset(Dataset):
@@ -151,8 +150,8 @@ def make_loader(train_test_id, labels_ids, args, ids, batch_size, train=True, ac
     data_loader = DataLoader(data_set,
                              batch_size=batch_size,
                              shuffle=shuffle,
-                             num_workers=args.workers
-                             #pin_memory=torch.cuda.is_available()
+                             num_workers=args.workers,
+                             pin_memory=torch.cuda.is_available()
                              )
     return data_loader
 
