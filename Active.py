@@ -43,11 +43,11 @@ class ActiveLearningTrainer:
                 self.bootstrap_models[model_id].zero_grad()
                 loss = criterion(out, input_labels)
                 loss.backward()
-                grad = input_tensor.grad.cpu().numpy()
-                image_bootstrap_grad += np.sum(abs(grad))
+                grad = input_tensor.grad.abs().sum()
+                image_bootstrap_grad += grad
             most_uncertain_ids[non_annotated[i]] = image_bootstrap_grad
         uncertain = sorted(most_uncertain_ids, key=most_uncertain_ids.get, reverse=True)[:args.uncertain_select_num]
-        print(start - time.time())
+        print(time.time()-start)
         return uncertain
 
     def select_representative(self, most_uncertain):
