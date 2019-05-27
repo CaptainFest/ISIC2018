@@ -23,8 +23,8 @@ class MyDataset(Dataset):
         self.ids = ids
         if train == 'train' or train == 'active':
             if self.ids.size != 0:
-                self.labels_ids = self.labels_ids.iloc[self.ids, :][self.train_test_id['Split'] == 'train'].values.astype('uint8')
-                self.train_test_id = self.train_test_id.iloc[self.ids, :][self.train_test_id['Split'] == 'train'].ID.values
+                self.labels_ids = self.labels_ids[self.train_test_id['Split'] == 'train'].iloc[self.ids, :].values.astype('uint8')
+                self.train_test_id = self.train_test_id[self.train_test_id['Split'] == 'train'].iloc[self.ids, :].ID.values
                 print('Train =', self.train, 'train_test_id.shape: ', self.train_test_id.shape)
             else:
                 self.labels_ids = self.labels_ids[self.train_test_id['Split'] == 'train'].values.astype('uint8')
@@ -36,7 +36,6 @@ class MyDataset(Dataset):
             print('Train =', self.train, 'train_test_id.shape: ', self.train_test_id.shape)
 
         self.n = self.train_test_id.shape[0]
-
 
     def __len__(self):
         return self.n
@@ -89,13 +88,12 @@ class MyDataset(Dataset):
         return image, mask
 
     def __getitem__(self, index):
-        print(index)
+
         if self.mode == 'grid_AL':
             name = self.train_test_id[np.floor(index / self.square_size**2)]
         else:
             name = self.train_test_id[index]
         path = self.image_path
-        print(name)
         # Load image and from h5
         image = load_image(os.path.join(path, '%s.h5' % name), 'image')
         mask = load_image(os.path.join(path, '%s_attribute_all.h5' % name), 'mask')
@@ -118,7 +116,7 @@ class MyDataset(Dataset):
         return image_with_mask, labels, name
 
 
-def make_loader(train_test_id, labels_ids, args, ids, batch_size, train=True, shuffle=True):
+def make_loader(train_test_id, labels_ids, args, ids=np.array([]), batch_size=1, train=True, shuffle=True):
 
     data_set = MyDataset(train_test_id=train_test_id,
                          labels_ids=labels_ids,

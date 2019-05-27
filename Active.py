@@ -20,7 +20,7 @@ class ActiveLearningTrainer:
         most_uncertain = self.select_uncertain()
         most_representative = self.select_representative(most_uncertain)
         assert(not (set(self.annotated) & set(most_representative)))
-        assert(len(self.annotated)+len(most_representative) == len(set(self.annotated) & set(most_representative)))
+        assert(len(self.annotated)+len(most_representative) == len(set(self.annotated) | set(most_representative)))
         return np.append(self.annotated, most_representative)
 
     def select_uncertain(self):
@@ -30,7 +30,7 @@ class ActiveLearningTrainer:
         mask_ind = self.mask_ind
         args = self.args
         non_annotated = self.non_annotated
-        dl = make_loader(train_test_id, mask_ind, args, train=True, ids=non_annotated, batch_size=1, shuffle=False)
+        dl = make_loader(train_test_id, mask_ind, args, train='active', ids=non_annotated, batch_size=1, shuffle=False)
         most_uncertain_ids = {}
         for i, (input_, input_labels, names) in enumerate(dl):
             input_tensor = input_.permute(0, 3, 1, 2)
@@ -47,32 +47,30 @@ class ActiveLearningTrainer:
                 image_bootstrap_grad += np.sum(abs(grad))
             most_uncertain_ids[non_annotated[i]] = image_bootstrap_grad
         uncertain = sorted(most_uncertain_ids, key=most_uncertain_ids.get, reverse=True)[:args.uncertain_select_num]
-        print(uncertain)
         return uncertain
 
     def select_representative(self, most_uncertain):
         args = self.args
-        most_representative = np.array([])
+        most_representative = np.array([], dtype='int')
         add_image_id = 0
         with torch.no_grad():
-            cos_sim_table = self.sims
-            cand = len(cos_sim_table.shape[0])
-            nonannot = len(cos_sim_table.shape[1])
+            cos_sim_table = self.sims[most_uncertain, :]
+            cand = cos_sim_table.shape[0]
+            nonannot = cos_sim_table.shape[1]
             array_of_maximums = np.zeros(nonannot)
             temp_array = np.zeros(nonannot)
             for i in range(args.representative_select_num):
                 max_sum = 0
-                print('i=', i)
                 for j in range(cand):
                     if most_uncertain[j] not in most_representative:
                         temp_array = array_of_maximums
                         for k in range(nonannot):
-                            if cos_sim_table[i, k] > array_of_maximums[k]:
-                                temp_array[k] = cos_sim_table[i, k]
-                    temp_sum = sum(temp_array)
-                    if temp_sum >= max_sum:
-                        max_sum = max_sum
-                        add_image_id = most_uncertain[j]
+                            if cos_sim_table[j, k] > array_of_maximums[k]:
+                                temp_array[k] = cos_sim_table[j, k]
+                        temp_sum = sum(temp_array)
+                        if temp_sum >= max_sum:
+                            max_sum = temp_sum
+                            add_image_id = most_uncertain[j]
                 array_of_maximums = temp_array
                 most_representative = np.append(most_representative, add_image_id)
         return most_representative

@@ -61,12 +61,12 @@ def main():
     non_annotated = np.array([])
     K_models = 1
     if args.mode in ['classic_AL', 'grid_AL']:
-        indexes = train_test_id[train_test_id['Split'] == 'train'].index.tolist()
+        indexes = np.arange(len(train_test_id[train_test_id['Split'] == 'train']))
         annotated = np.random.choice(indexes, args.begin_number, replace=False)
-        non_annotated = np.setxor1d(indexes, annotated)
+        non_annotated = np.array(list(set(indexes) - set(annotated)))
         K_models = args.K_models
 
-    train_loader = make_loader(train_test_id, mask_ind, args, annotated,  batch_size=args.batch_size, train=True,
+    train_loader = make_loader(train_test_id, mask_ind, args, annotated,  batch_size=args.batch_size, train='train',
                                shuffle=True)
 
     if True:
@@ -124,10 +124,10 @@ def main():
                 if model_id != 0:
                     subset_with_replaces = np.random.choice(annotated, len(annotated), replace=True)
                     train_loader = make_loader(train_test_id, mask_ind, args, ids=subset_with_replaces,
-                                               batch_size=args.batch_size, train=True, shuffle=True)
+                                               batch_size=args.batch_size, train='train', shuffle=True)
                 else:
                     train_loader = make_loader(train_test_id, mask_ind, args, ids=annotated,
-                                               batch_size=args.batch_size, train=True, shuffle=True)
+                                               batch_size=args.batch_size, train='train', shuffle=True)
                 n1 = len(train_loader)
                 for i, (train_image_batch, train_labels_batch, names) in enumerate(train_loader):
                     if i % 50 == 0:
@@ -182,7 +182,7 @@ def main():
             rec.reset()
             rec2.reset()
             ##################################### validation ###########################################
-            valid_loader = make_loader(train_test_id, mask_ind, args, batch_size=args.batch_size, train=False, shuffle=True)
+            valid_loader = make_loader(train_test_id, mask_ind, args, batch_size=args.batch_size, train='valid', shuffle=True)
             with torch.no_grad():
                 n2 = len(valid_loader)
 
@@ -235,9 +235,8 @@ def main():
                 al_trainer = ActiveLearningTrainer(train_test_id, mask_ind, device, args, bootstrap_models, annotated, non_annotated)
                 annotated = al_trainer.al_step()
                 print(len(non_annotated))
-                non_annotated = np.setxor1d(non_annotated, annotated)
+                non_annotated = np.array(list(set(non_annotated) - set(annotated)))
                 print(len(non_annotated))
-                return
         except KeyboardInterrupt:
             return
     writer.close()
