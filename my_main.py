@@ -123,11 +123,10 @@ def main():
                 ##################################### training #############################################
                 if model_id != 0:
                     subset_with_replaces = np.random.choice(annotated, len(annotated), replace=True)
-                    print(subset_with_replaces)
-                    train_loader = make_loader(train_test_id, mask_ind, args, subset_with_replaces,
-                                               batch_size=args.batch_size, train=True, shuffle=True, annotated_np=annotated)
+                    train_loader = make_loader(train_test_id, mask_ind, args, ids=subset_with_replaces,
+                                               batch_size=args.batch_size, train=True, shuffle=True)
                 else:
-                    train_loader = make_loader(train_test_id, mask_ind, args, annotated,
+                    train_loader = make_loader(train_test_id, mask_ind, args, ids=annotated,
                                                batch_size=args.batch_size, train=True, shuffle=True)
                 n1 = len(train_loader)
                 for i, (train_image_batch, train_labels_batch, names) in enumerate(train_loader):
@@ -183,7 +182,7 @@ def main():
             rec.reset()
             rec2.reset()
             ##################################### validation ###########################################
-            valid_loader = make_loader(train_test_id, mask_ind, args, annotated, batch_size=args.batch_size, train=False, shuffle=True)
+            valid_loader = make_loader(train_test_id, mask_ind, args, batch_size=args.batch_size, train=False, shuffle=True)
             with torch.no_grad():
                 n2 = len(valid_loader)
 
