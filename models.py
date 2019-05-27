@@ -54,6 +54,6 @@ def create_model(args, device):
         last_layer_in_channels = model.fc.in_features
         model.fc = nn.Linear(last_layer_in_channels, out_shape)
     model.to(device)
-    optimizer = Adam(model.parameters(), lr=args.lr)
+    optimizer = Adam(model.parameters(), lr=args.lr, weight_decay=1e-5)
 
     return model, optimizer
