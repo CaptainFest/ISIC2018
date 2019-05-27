@@ -87,7 +87,7 @@ def main():
     bootstrap_models = {}
     optimizers = {}
 
-    device = ('cuda')
+    device = ('cuda:1')
 
     # define models pool
     for i in range(K_models):
@@ -123,7 +123,7 @@ def main():
                 ##################################### training #############################################
                 if model_id != 0:
                     subset_with_replaces = np.random.choice(annotated, len(annotated), replace=True)
-                    train_loader = make_loader(train_test_id, mask_ind, args, ids=subset_with_replaces,
+                    train_loader = make_loader(train_test_id, mas--k_ind, args, ids=subset_with_replaces,
                                                batch_size=args.batch_size, train='train', shuffle=True)
                 else:
                     train_loader = make_loader(train_test_id, mask_ind, args, ids=annotated,
@@ -234,9 +234,7 @@ def main():
             if args.mode in ['classic_AL', 'grid_AL']:
                 al_trainer = ActiveLearningTrainer(train_test_id, mask_ind, device, args, bootstrap_models, annotated, non_annotated)
                 annotated = al_trainer.al_step()
-                print(len(non_annotated))
                 non_annotated = np.array(list(set(non_annotated) - set(annotated)))
-                print(len(non_annotated))
         except KeyboardInterrupt:
             return
     writer.close()
