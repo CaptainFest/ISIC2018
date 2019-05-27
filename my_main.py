@@ -123,7 +123,7 @@ def main():
                 ##################################### training #############################################
                 if model_id != 0:
                     subset_with_replaces = np.random.choice(annotated, len(annotated), replace=True)
-                    train_loader = make_loader(train_test_id, mas--k_ind, args, ids=subset_with_replaces,
+                    train_loader = make_loader(train_test_id, mask_ind, args, ids=subset_with_replaces,
                                                batch_size=args.batch_size, train='train', shuffle=True)
                 else:
                     train_loader = make_loader(train_test_id, mask_ind, args, ids=annotated,
