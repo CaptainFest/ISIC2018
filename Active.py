@@ -2,7 +2,7 @@ import numpy as np
 import torch.nn as nn
 from my_dataset import make_loader
 import torch
-
+import time
 
 class ActiveLearningTrainer:
 
@@ -24,7 +24,7 @@ class ActiveLearningTrainer:
         return np.append(self.annotated, most_representative)
 
     def select_uncertain(self):
-
+        start = time.time()
         criterion = nn.BCEWithLogitsLoss()
         train_test_id = self.train_test_id
         mask_ind = self.mask_ind
@@ -47,6 +47,7 @@ class ActiveLearningTrainer:
                 image_bootstrap_grad += np.sum(abs(grad))
             most_uncertain_ids[non_annotated[i]] = image_bootstrap_grad
         uncertain = sorted(most_uncertain_ids, key=most_uncertain_ids.get, reverse=True)[:args.uncertain_select_num]
+        print(start - time.time())
         return uncertain
 
     def select_representative(self, most_uncertain):
