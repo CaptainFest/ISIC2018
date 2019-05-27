@@ -30,7 +30,7 @@ class ActiveLearningTrainer:
         mask_ind = self.mask_ind
         args = self.args
         non_annotated = self.non_annotated
-        dl = make_loader(train_test_id, mask_ind, args, non_annotated, batch_size=1, train=True, shuffle=False)
+        dl = make_loader(train_test_id, mask_ind, args, train=True, ids=non_annotated, batch_size=1, shuffle=False)
         most_uncertain_ids = {}
         for i, (input_, input_labels, names) in enumerate(dl):
             input_tensor = input_.permute(0, 3, 1, 2)
