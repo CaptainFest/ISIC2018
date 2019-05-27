@@ -10,31 +10,33 @@ import numpy as np
 
 class MyDataset(Dataset):
 
-    def __init__(self, train_test_id, labels_ids, args, train, ids, annotated_np):
+    def __init__(self, train_test_id, labels_ids, args, train, ids=np.array([])):
 
         self.train_test_id = train_test_id
+        self.labels_ids = labels_ids
         self.image_path = args.image_path
         self.pretrained = args.pretrained
         self.augment_list = args.augment_list
-        self.labels_ids = labels_ids
         self.train = train
         self.square_size = args.square_size
         self.mode = args.mode
-        self.annotated_np = annotated_np
-        if train:
-            if ids.size != 0:
-                self.labels_ids = self.labels_ids.iloc[ids, :][self.train_test_id['Split'] == 'train'].values.astype('uint8')
-                self.train_test_id = self.train_test_id.iloc[ids, :][self.train_test_id['Split'] == 'train'].ID.values
+        self.ids = ids
+        if train == 'train' or train == 'active':
+            if self.ids.size != 0:
+                self.labels_ids = self.labels_ids.iloc[self.ids, :][self.train_test_id['Split'] == 'train'].values.astype('uint8')
+                self.train_test_id = self.train_test_id.iloc[self.ids, :][self.train_test_id['Split'] == 'train'].ID.values
                 print('Train =', self.train, 'train_test_id.shape: ', self.train_test_id.shape)
             else:
                 self.labels_ids = self.labels_ids[self.train_test_id['Split'] == 'train'].values.astype('uint8')
                 self.train_test_id = self.train_test_id[self.train_test_id['Split'] == 'train'].ID.values
                 print('Train =', self.train, 'train_test_id.shape: ', self.train_test_id.shape)
-        else:
+        elif train == 'valid':
             self.labels_ids = self.labels_ids[self.train_test_id['Split'] != 'train'].values.astype('uint8')
             self.train_test_id = self.train_test_id[self.train_test_id['Split'] != 'train'].ID.values
             print('Train =', self.train, 'train_test_id.shape: ', self.train_test_id.shape)
+
         self.n = self.train_test_id.shape[0]
+
 
     def __len__(self):
         return self.n
@@ -87,43 +89,42 @@ class MyDataset(Dataset):
         return image, mask
 
     def __getitem__(self, index):
-
+        print(index)
         if self.mode == 'grid_AL':
             name = self.train_test_id[np.floor(index / self.square_size**2)]
         else:
             name = self.train_test_id[index]
         path = self.image_path
-
+        print(name)
         # Load image and from h5
         image = load_image(os.path.join(path, '%s.h5' % name), 'image')
         mask = load_image(os.path.join(path, '%s_attribute_all.h5' % name), 'mask')
 
-        if self.train:
+        if self.train in ['train', 'active']:
             if self.augment_list:
                 image, mask = self.transform_fn(image, mask)
 
-        if self.mode == 'grid_AL':
-            pass
-            #if index:
-            #    mask[] = 0
-        elif self.mode == 'classic_AL':
-            if index in self.annotated_np:
-                mask[mask] = 0
+        if self.train == 'active':
+            if self.mode == 'grid_AL':
+                pass
+                #if index:
+                #    mask[] = 0
+            elif self.mode == 'classic_AL':
+                if index in self.ids:
+                    mask.fill(0.)
         image_with_mask = np.dstack((image, mask))
         labels = self.labels_ids[index, :]
 
         return image_with_mask, labels, name
 
 
-def make_loader(train_test_id, labels_ids, args, ids, batch_size, train=True, shuffle=True,
-                annotated_np=np.array([])):
+def make_loader(train_test_id, labels_ids, args, ids, batch_size, train=True, shuffle=True):
 
     data_set = MyDataset(train_test_id=train_test_id,
                          labels_ids=labels_ids,
                          args=args,
                          train=train,
-                         ids=ids,
-                         annotated_np=annotated_np)
+                         ids=ids)
     data_loader = DataLoader(data_set,
                              batch_size=batch_size,
                              shuffle=shuffle,
