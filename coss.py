@@ -6,8 +6,8 @@ from utils import load_image
 
 parser = argparse.ArgumentParser()
 arg = parser.add_argument
-arg('--image_path', type=str, default="/home/irek/My_work/train/h5_224/")
-arg('--save_path', type=str, default="/home/irek/My_work/train/h5_224/")
+arg('--image_path', type=str, default="/home/irek/My_work/train/h5_64/")
+arg('--save_path', type=str, default="/home/irek/My_work/train/h5_64/")
 args = parser.parse_args()
 
 
@@ -55,4 +55,4 @@ img_inds = list(map(get_ind, non_annotated_image_names))
 for ind, name in enumerate(img_inds):
     calculate_similarities(ind, name, non_annotated_image_names)
 
-np.save('similarities_table', cos_sim_table)
+np.save('/data/ISIC/similarities_table', cos_sim_table)

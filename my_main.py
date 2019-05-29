@@ -5,6 +5,7 @@ from pathlib import Path
 from ignite.metrics import Precision, Recall, MetricsLambda
 import pandas as pd
 import numpy as np
+import json
 
 import torch
 import torchvision
@@ -59,15 +60,23 @@ def main():
 
     annotated = np.array([])
     non_annotated = np.array([])
+    squares_annotated = np.array([])
+    squares_non_annotated = np.array([])
     K_models = 1
     if args.mode in ['classic_AL', 'grid_AL']:
         indexes = np.arange(len(train_test_id[train_test_id['Split'] == 'train']))
         annotated = np.random.choice(indexes, args.begin_number, replace=False)
+        if args.mode == 'grid_AL':
+            img_indexes = (224//args.square_size)**2
+            squares_indexes = indexes * img_indexes
+            squares_annotated = np.random.choice(indexes, args.begin_number, replace=False)
+            squares_annotated = np.array([np.arange(an, an+img_indexes) for an in squares_annotated]).ravel()
+            squares_non_annotated = np.array(list(set(squares_indexes) - set(squares_annotated)))
         non_annotated = np.array(list(set(indexes) - set(annotated)))
         K_models = args.K_models
 
-    train_loader = make_loader(train_test_id, mask_ind, args, annotated,  batch_size=args.batch_size, train='train',
-                               shuffle=True)
+    train_loader = make_loader(train_test_id, mask_ind, args, annotated,  batch_size=args.batch_size, train='train'
+                               , shuffle=True)
 
     if True:
         print('--' * 10)
@@ -87,7 +96,7 @@ def main():
     bootstrap_models = {}
     optimizers = {}
 
-    device = ('cuda:1')
+    device = ('cuda')
 
     # define models pool
     for i in range(K_models):
@@ -105,7 +114,8 @@ def main():
     criterion = nn.BCEWithLogitsLoss()
 
     log = root.joinpath('train.log').open('at', encoding='utf8')
-
+    root.joinpath('params.json').write_text(
+        json.dumps(vars(args), indent=True, sort_keys=True))
     scheduler = ReduceLROnPlateau(optimizers[0], 'min', factor=0.8, patience=10, verbose=True)
 
     writer = SummaryWriter()
@@ -233,8 +243,12 @@ def main():
 
             if args.mode in ['classic_AL', 'grid_AL']:
                 al_trainer = ActiveLearningTrainer(train_test_id, mask_ind, device, args, bootstrap_models, annotated, non_annotated)
-                annotated = al_trainer.al_step()
-                non_annotated = np.array(list(set(non_annotated) - set(annotated)))
+                if args.mode == 'classic_AL':
+                    annotated = al_trainer.al_classic_step()
+                    non_annotated = np.array(list(set(non_annotated) - set(annotated)))
+                else:
+                    squares_annotated = al_trainer.al_grid_step()
+                    squares_non_annotated = np.array(list(set(squares_non_annotated) - set(squares_annotated)))
         except KeyboardInterrupt:
             return
     writer.close()

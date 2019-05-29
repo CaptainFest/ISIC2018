@@ -8,7 +8,7 @@ import os
 image_path = "/home/irek/My_work/train/data/"
 mask_path = "/home/irek/My_work/train/binary/"
 
-save_path = "/home/irek/My_work/train/h5_112/"
+save_path = "/home/irek/My_work/train/h5_64/"
 
 if not os.path.exists(save_path):
     os.mkdir(save_path)
@@ -20,7 +20,7 @@ def load_image(ind, img_id):
     print(img_id)
     ### load image
     image_file = image_path + '%s.jpg' % img_id
-    img = load_img(image_file, target_size=(112,112), color_mode='rgb')  # this is a PIL image
+    img = load_img(image_file, target_size=(64,64), color_mode='rgb')  # this is a PIL image
     img_np = img_to_array(img)
     ### only 0-255 integers
     img_np = img_np.astype(np.uint8)
@@ -53,4 +53,4 @@ def get_ind(img_name):
 
 img_inds = list(map(get_ind, img_names))
 
-results = Parallel(n_jobs=8)(delayed(load_image)(ind, row) for ind,row in enumerate(img_inds))
+results = Parallel(n_jobs=12)(delayed(load_image)(ind, row) for ind,row in enumerate(img_inds))
