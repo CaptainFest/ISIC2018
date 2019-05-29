@@ -243,8 +243,10 @@ def main():
             if args.mode in ['classic_AL', 'grid_AL']:
                 al_trainer = ActiveLearningTrainer(train_test_id, mask_ind, device, args, bootstrap_models, annotated, non_annotated)
                 if args.mode == 'classic_AL':
+                    temp_time = time.time()
                     annotated = al_trainer.al_classic_step()
                     non_annotated = np.array(list(set(non_annotated) - set(annotated)))
+                    print(time.time() - temp_time)
                 else:
                     squares_annotated = al_trainer.al_grid_step()
                     squares_non_annotated = np.array(list(set(squares_non_annotated) - set(squares_annotated)))
