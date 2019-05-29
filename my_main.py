@@ -8,10 +8,7 @@ import numpy as np
 import json
 
 import torch
-import torchvision
-from torch import nn
 from torch.backends import cudnn
-import torch.nn.functional as F
 from tensorboardX import SummaryWriter
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 
