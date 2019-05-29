@@ -1,7 +1,5 @@
 import torch
 from torch import nn
-from torch.nn import functional as F
-
 
 
 class LossBinary:
@@ -17,14 +15,8 @@ class LossBinary:
         self.jaccard_weight = jaccard_weight
 
     def __call__(self, outputs, targets):
-        # print('outputs.type', outputs.type())
-        # print('targets.type', targets.type())
-        # print('outputs.shape', outputs.shape)
-        # print('targets.shape', targets.shape)
+
         loss = self.nll_loss(outputs, targets)
-        # print('loss.type', loss.type())
-        # print('loss.shape', loss.shape)
-        # print(loss)
 
         if self.jaccard_weight:
             eps = 1e-15
