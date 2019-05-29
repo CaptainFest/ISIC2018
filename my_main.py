@@ -104,11 +104,16 @@ def main():
     if args.show_model:
         print(bootstrap_models[0])
 
-    prec = Precision(average=True, is_multilabel=True)
-    rec = Recall(average=True, is_multilabel=True)
-    prec2 = Precision(is_multilabel=True)
-    rec2 = Recall(is_multilabel=True)
-    f1_score = MetricsLambda(f1, rec2, prec2)
+    sigm_prec = Precision(average=True, is_multilabel=True)
+    sigm_rec = Recall(average=True, is_multilabel=True)
+    sigm_prec2 = Precision(is_multilabel=True)
+    sigm_rec2 = Recall(is_multilabel=True)
+    sigm_f1_score = MetricsLambda(f1, sigm_rec2, sigm_prec2)
+    tanh_prec = Precision(average=True, is_multilabel=True)
+    tanh_rec = Recall(average=True, is_multilabel=True)
+    tanh_prec2 = Precision(is_multilabel=True)
+    tanh_rec2 = Recall(is_multilabel=True)
+    tanh_f1_score = MetricsLambda(f1, tanh_rec2, tanh_prec2)
 
     criterion = LossBinary(args.jaccard_weight)
 
@@ -157,17 +162,20 @@ def main():
                     optimizers[model_id].step()
 
                     if model_id == 0:
-                        if args.output_transform_function == 'sigmoid':
-                            outputs = torch.sigmoid(output_probs)
-                            outputs = (outputs > 0.5)
-                        elif args.output_transform_function == 'tanh':
-                            outputs = torch.tanh(output_probs)
-                            outputs = (outputs > 0.0)
 
-                        prec.update((outputs, train_labels_batch))
-                        rec.update((outputs, train_labels_batch))
-                        prec2.update((outputs, train_labels_batch))
-                        rec2.update((outputs, train_labels_batch))
+                        outputs = torch.sigmoid(output_probs)
+                        outputs = (outputs > 0.5)
+                        sigm_prec.update((outputs, train_labels_batch))
+                        sigm_rec.update((outputs, train_labels_batch))
+                        sigm_prec2.update((outputs, train_labels_batch))
+                        sigm_rec2.update((outputs, train_labels_batch))
+
+                        outputs = torch.tanh(output_probs)
+                        outputs = (outputs > 0.0)
+                        tanh_prec.update((outputs, train_labels_batch))
+                        tanh_rec.update((outputs, train_labels_batch))
+                        tanh_prec2.update((outputs, train_labels_batch))
+                        tanh_rec2.update((outputs, train_labels_batch))
                 # save weights for each model after its training
                 # save_weights(model, model_id, args.model_path, epoch + 1, steps)
 
@@ -175,21 +183,28 @@ def main():
 
             train_metrics = {'epoch': ep,
                              'loss': loss,
-                             'precision': prec.compute(),
-                             'recall': rec.compute(),
-                             'f1_score': f1_score.compute(),
+                             'sigm_precision': sigm_prec.compute(),
+                             'sigm_recall': sigm_rec.compute(),
+                             'sigm_f1_score': sigm_f1_score.compute(),
+                             'tanh_precision': tanh_prec.compute(),
+                             'tanh_recall': tanh_rec.compute(),
+                             'tanh_f1_score': tanh_f1_score.compute(),
                              'epoch_time': epoch_time}
             print('Epoch: {} Loss: {:.6f} Prec: {:.4f} Recall: {:.4f} F1: {:.4f} Time: {:.4f}'.format(
                                                          train_metrics['epoch'],
                                                          train_metrics['loss'],
-                                                         train_metrics['precision'],
-                                                         train_metrics['recall'],
-                                                         train_metrics['f1_score'],
+                                                         train_metrics['sigm_precision'],
+                                                         train_metrics['sigm_recall'],
+                                                         train_metrics['sigm_f1_score'],
                                                          train_metrics['epoch_time']))
-            prec.reset()
-            prec2.reset()
-            rec.reset()
-            rec2.reset()
+            sigm_prec.reset()
+            sigm_prec2.reset()
+            sigm_rec.reset()
+            sigm_rec2.reset()
+            tanh_prec.reset()
+            tanh_prec2.reset()
+            tanh_rec.reset()
+            tanh_rec2.reset()
             ##################################### validation ###########################################
             valid_loader = make_loader(train_test_id, mask_ind, args, batch_size=args.batch_size, train='valid', shuffle=True)
             with torch.no_grad():
@@ -204,35 +219,44 @@ def main():
                     valid_labels_batch = valid_labels_batch.to(device).type(torch.cuda.FloatTensor)
 
                     output_probs = bootstrap_models[0](valid_image_batch)
-                    if ep == args.n_epochs - 1:
-                        print(output_probs)
-
-                    if args.output_transform_function == 'sigmoid':
-                        outputs = torch.sigmoid(output_probs)
-                        outputs = (outputs > 0.5)
-                    elif args.output_transform_function == 'tanh':
-                        outputs = torch.tanh(output_probs)
-                        outputs = (outputs > 0.0)
 
                     loss = criterion(output_probs, valid_labels_batch)
 
-                    prec.update((outputs, valid_labels_batch))
-                    rec.update((outputs, valid_labels_batch))
-                    prec2.update((outputs, valid_labels_batch))
-                    rec2.update((outputs, valid_labels_batch))
+                    outputs = torch.sigmoid(output_probs)
+                    outputs = (outputs > 0.5)
+                    sigm_prec.update((outputs, valid_labels_batch))
+                    sigm_rec.update((outputs, valid_labels_batch))
+                    sigm_prec2.update((outputs, valid_labels_batch))
+                    sigm_rec2.update((outputs, valid_labels_batch))
+
+                    outputs = torch.tanh(output_probs)
+                    outputs = (outputs > 0.0)
+                    tanh_prec.update((outputs, valid_labels_batch))
+                    tanh_rec.update((outputs, valid_labels_batch))
+                    tanh_prec2.update((outputs, valid_labels_batch))
+                    tanh_rec2.update((outputs, valid_labels_batch))
+                    
             valid_metrics = {'loss': loss,
-                             'precision': prec.compute(),
-                             'recall': rec.compute(),
-                             'f1_score': f1_score.compute()}
+                             'sigm_precision': sigm_prec.compute(),
+                             'sigm_recall': sigm_rec.compute(),
+                             'sigm_f1_score': sigm_f1_score.compute(),
+                             'tanh_precision': tanh_prec.compute(),
+                             'tanh_recall': tanh_rec.compute(),
+                             'tanh_f1_score': tanh_f1_score.compute(),
+                             }
             print('\t\t Loss: {:.6f} Prec: {:.4f} Recall: {:.4f} F1: {:.4f}'.format(
                                                                  valid_metrics['loss'],
-                                                                 valid_metrics['precision'],
-                                                                 valid_metrics['recall'],
-                                                                 valid_metrics['f1_score']))
-            prec.reset()
-            prec2.reset()
-            rec.reset()
-            rec2.reset()
+                                                                 valid_metrics['sigm_precision'],
+                                                                 valid_metrics['sigm_recall'],
+                                                                 valid_metrics['sigm_f1_score']))
+            sigm_prec.reset()
+            sigm_prec2.reset()
+            sigm_rec.reset()
+            sigm_rec2.reset()
+            tanh_prec.reset()
+            tanh_prec2.reset()
+            tanh_rec.reset()
+            tanh_rec2.reset()
 
             write_event(log, train_metrics=train_metrics, valid_metrics=valid_metrics)
 
