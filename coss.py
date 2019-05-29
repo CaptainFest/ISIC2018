@@ -11,7 +11,6 @@ arg('--save_path', type=str, default="/home/irek/My_work/train/h5_64/")
 args = parser.parse_args()
 
 
-
 def cos_similarity(v1, v2):
     "compute cosine similarity of v1 to v2: (v1 dot v2)/{||v1||*||v2||)"
     sumxx, sumxy, sumyy = 0, 0, 0
@@ -19,6 +18,7 @@ def cos_similarity(v1, v2):
         x = v1[i]
         y = v2[i]
         sumxx += x * x
+        sumyy += y * y
         sumyy += y * y
         sumxy += x * y
     return sumxy / math.sqrt(sumxx * sumyy)
