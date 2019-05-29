@@ -15,6 +15,7 @@ import torch.nn.functional as F
 from tensorboardX import SummaryWriter
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 
+from loss import LossBinary
 from utils import write_event, write_tensorboard
 from my_dataset import make_loader
 from models import create_model
@@ -45,6 +46,7 @@ def main():
     arg('--uncertain_select-num', type=int, default=10)
     arg('--representative-select-num', type=int, default=5)
     arg('--square-size', type=int, default=16)
+    arg('--jaccard-weight', type=float, default=0.)
     arg('--output-transform-function', type=str, default='sigmoid', choices=['sigmoid', 'tanh'])
     arg('--conv-learn-enabled', action='store_true')   # if --conv-learn-enabled parameter then True
     arg('--mode', type=str, default='simple', choices=['simple', 'classic_AL', 'grid_AL'])
@@ -111,7 +113,7 @@ def main():
     rec2 = Recall(is_multilabel=True)
     f1_score = MetricsLambda(f1, rec2, prec2)
 
-    criterion = nn.BCEWithLogitsLoss()
+    criterion = LossBinary(args.jaccard_weight)
 
     log = root.joinpath('train.log').open('at', encoding='utf8')
     root.joinpath('params.json').write_text(

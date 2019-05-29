@@ -3,6 +3,7 @@ import torch.nn as nn
 from my_dataset import make_loader
 import torch
 import time
+from loss import LossBinary
 
 class ActiveLearningTrainer:
 
@@ -40,7 +41,7 @@ class ActiveLearningTrainer:
 
     def select_uncertain(self):
         start = time.time()
-        criterion = nn.BCEWithLogitsLoss()
+        criterion = LossBinary(self.args.jaccard_weight)
         train_test_id = self.train_test_id
         mask_ind = self.mask_ind
         args = self.args
