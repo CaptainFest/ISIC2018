@@ -44,7 +44,6 @@ def main():
     arg('--representative-select-num', type=int, default=5)
     arg('--square-size', type=int, default=16)
     arg('--jaccard-weight', type=float, default=0.)
-    arg('--output-transform-function', type=str, default='sigmoid', choices=['sigmoid', 'tanh'])
     arg('--conv-learn-enabled', action='store_true')   # if --conv-learn-enabled parameter then True
     arg('--mode', type=str, default='simple', choices=['simple', 'classic_AL', 'grid_AL'])
     args = parser.parse_args()
@@ -235,7 +234,7 @@ def main():
                     tanh_rec.update((outputs, valid_labels_batch))
                     tanh_prec2.update((outputs, valid_labels_batch))
                     tanh_rec2.update((outputs, valid_labels_batch))
-                    
+
             valid_metrics = {'loss': loss,
                              'sigm_precision': sigm_prec.compute(),
                              'sigm_recall': sigm_rec.compute(),
