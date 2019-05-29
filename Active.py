@@ -4,6 +4,7 @@ from my_dataset import make_loader
 import torch
 import time
 from loss import LossBinary
+import bottleneck as bn
 
 class ActiveLearningTrainer:
 
@@ -48,6 +49,7 @@ class ActiveLearningTrainer:
         non_annotated = self.non_annotated
         dl = make_loader(train_test_id, mask_ind, args, train='active', ids=non_annotated, batch_size=args.batch_size, shuffle=False)
         most_uncertain_ids = {}
+        arr = np.zeros([len(non_annotated)])
         for i, (input_, input_labels, names) in enumerate(dl):
 
             input_tensor = input_.permute(0, 3, 1, 2)
@@ -56,18 +58,21 @@ class ActiveLearningTrainer:
             input_labels = input_labels.to(self.device).type(torch.cuda.FloatTensor)
 
             grad = torch.zeros([args.batch_size], dtype=torch.float64, device=self.device)
+
             for model_id in range(1, args.K_models):
                 out = self.bootstrap_models[model_id](input_tensor)
                 self.bootstrap_models[model_id].zero_grad()
                 loss = criterion(out, input_labels)
                 loss.backward()
-                for j in range(args.batch_size):
-                    grad += input_tensor[j].grad.abs().sum()
-            for k in range(args.batch_size):
-                most_uncertain_ids[non_annotated[i*args.batch_size + k]] = grad[k]
-        uncertain = sorted(most_uncertain_ids, key=most_uncertain_ids.get, reverse=True)[:args.uncertain_select_num]
-        print(time.time()-start)
-        return uncertain
+                for j in range(input_tensor.shape[0]):
+                    grad[j] += input_tensor.grad[j].abs().sum()
+            for k in range(input_tensor.shape[0]):
+                arr[i*args.batch_size + k] = grad[k]
+
+        indexes = bn.argpartition(-arr, args.uncertain_select_num)[:args.uncertain_select_num]
+        top_uncertain = non_annotated[indexes]
+
+        return top_uncertain
 
     def select_uncertain_square(self):
         start = time.time()
