@@ -62,19 +62,16 @@ def main():
     non_annotated_squares = np.array([])
     K_models = 1
     if args.mode in ['classic_AL', 'grid_AL']:
-        indexes = np.arange(len(train_test_id[train_test_id['Split'] == 'train']))
+        len_train = len(train_test_id[train_test_id['Split'] == 'train'])
+        indexes = np.arange(len_train)
         annotated = np.random.choice(indexes, args.begin_number, replace=False)
         if args.mode == 'grid_AL':
-            img_indexes = (224//args.square_size)**2
-            inds = indexes * img_indexes
-            squares_indexes = np.arange(inds)
+            square_size = (224 // args.square_size)**2
+            squares_indexes = np.arange(len_train * square_size)
             annotated_squares = np.random.choice(indexes, args.begin_number, replace=False)
-            annotated_squares = np.array([np.arange(an, an+img_indexes) for an in annotated_squares]).ravel()
+            annotated_squares = np.array([np.arange(an, an + square_size) for an in annotated_squares]).ravel()
             non_annotated_squares = np.array(list(set(squares_indexes) - set(annotated_squares)))
-            print(len(non_annotated_squares))
-            print(len(annotated_squares))
 
-        return
         non_annotated = np.array(list(set(indexes) - set(annotated)))
         K_models = args.K_models
 
