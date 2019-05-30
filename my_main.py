@@ -58,8 +58,8 @@ def main():
 
     annotated = np.array([])
     non_annotated = np.array([])
-    squares_annotated = np.array([])
-    squares_non_annotated = np.array([])
+    annotated_squares = np.array([])
+    non_annotated_squares = np.array([])
     K_models = 1
     if args.mode in ['classic_AL', 'grid_AL']:
         indexes = np.arange(len(train_test_id[train_test_id['Split'] == 'train']))
@@ -67,14 +67,13 @@ def main():
         if args.mode == 'grid_AL':
             img_indexes = (224//args.square_size)**2
             squares_indexes = indexes * img_indexes
-            squares_annotated = np.random.choice(indexes, args.begin_number, replace=False)
-            squares_annotated = np.array([np.arange(an, an+img_indexes) for an in squares_annotated]).ravel()
-            squares_non_annotated = np.array(list(set(squares_indexes) - set(squares_annotated)))
+            annotated_squares = np.random.choice(indexes, args.begin_number, replace=False)
+            annotated_squares = np.array([np.arange(an, an+img_indexes) for an in annotated_squares]).ravel()
+            non_annotated_squares = np.array(list(set(squares_indexes) - set(annotated_squares)))
         non_annotated = np.array(list(set(indexes) - set(annotated)))
         K_models = args.K_models
 
-    train_loader = make_loader(train_test_id, mask_ind, args, annotated,  batch_size=args.batch_size, train='train'
-                               , shuffle=True)
+    train_loader = make_loader(train_test_id, mask_ind, args, annotated,  train='train', shuffle=True)
 
     if True:
         print('--' * 10)
@@ -108,11 +107,8 @@ def main():
     sigm_prec2 = Precision(is_multilabel=True)
     sigm_rec2 = Recall(is_multilabel=True)
     sigm_f1_score = MetricsLambda(f1, sigm_rec2, sigm_prec2)
-    tanh_prec = Precision(average=True, is_multilabel=True)
-    tanh_rec = Recall(average=True, is_multilabel=True)
-    tanh_prec2 = Precision(is_multilabel=True)
-    tanh_rec2 = Recall(is_multilabel=True)
-    tanh_f1_score = MetricsLambda(f1, tanh_rec2, tanh_prec2)
+    sigm_40_prec = Precision(average=True, is_multilabel=True)
+    sigm_60_prec = Precision(average=True, is_multilabel=True)
 
     criterion = LossBinary(args.jaccard_weight)
 
@@ -136,11 +132,11 @@ def main():
                 ##################################### training #############################################
                 if model_id != 0:
                     subset_with_replaces = np.random.choice(annotated, len(annotated), replace=True)
-                    train_loader = make_loader(train_test_id, mask_ind, args, ids=subset_with_replaces,
-                                               batch_size=args.batch_size, train='train', shuffle=True)
+                    train_loader = make_loader(train_test_id, mask_ind, args, ids=subset_with_replaces, train='train',
+                                               shuffle=True)
                 else:
-                    train_loader = make_loader(train_test_id, mask_ind, args, ids=annotated,
-                                               batch_size=args.batch_size, train='train', shuffle=True)
+                    train_loader = make_loader(train_test_id, mask_ind, args, ids=annotated, train='train',
+                                               shuffle=True)
                 n1 = len(train_loader)
                 for i, (train_image_batch, train_labels_batch, names) in enumerate(train_loader):
                     if i % 50 == 0:
@@ -156,7 +152,7 @@ def main():
 
                     loss = criterion(output_probs, train_labels_batch)
 
-                    optimizers[model_id].zero_grad()  # optimizers[model_id].zero_grad()
+                    optimizers[model_id].zero_grad()
                     loss.backward()
                     optimizers[model_id].step()
 
@@ -169,12 +165,9 @@ def main():
                         sigm_prec2.update((outputs, train_labels_batch))
                         sigm_rec2.update((outputs, train_labels_batch))
 
-                        outputs = torch.tanh(output_probs)
-                        outputs = (outputs > 0.0)
-                        tanh_prec.update((outputs, train_labels_batch))
-                        tanh_rec.update((outputs, train_labels_batch))
-                        tanh_prec2.update((outputs, train_labels_batch))
-                        tanh_rec2.update((outputs, train_labels_batch))
+                        sigm_40_prec.update((outputs, train_labels_batch))
+                        sigm_60_prec.update((outputs, train_labels_batch))
+
                 # save weights for each model after its training
                 # save_weights(model, model_id, args.model_path, epoch + 1, steps)
 
@@ -185,9 +178,8 @@ def main():
                              'sigm_precision': sigm_prec.compute(),
                              'sigm_recall': sigm_rec.compute(),
                              'sigm_f1_score': sigm_f1_score.compute(),
-                             'tanh_precision': tanh_prec.compute(),
-                             'tanh_recall': tanh_rec.compute(),
-                             'tanh_f1_score': tanh_f1_score.compute(),
+                             'sigm_40_precision': sigm_40_prec.compute(),
+                             'sigm_60_precision': sigm_60_prec.compute(),
                              'epoch_time': epoch_time}
             print('Epoch: {} Loss: {:.6f} Prec: {:.4f} Recall: {:.4f} F1: {:.4f} Time: {:.4f}'.format(
                                                          train_metrics['epoch'],
@@ -200,12 +192,11 @@ def main():
             sigm_prec2.reset()
             sigm_rec.reset()
             sigm_rec2.reset()
-            tanh_prec.reset()
-            tanh_prec2.reset()
-            tanh_rec.reset()
-            tanh_rec2.reset()
+            sigm_40_prec.reset()
+            sigm_60_prec.reset()
+
             ##################################### validation ###########################################
-            valid_loader = make_loader(train_test_id, mask_ind, args, batch_size=args.batch_size, train='valid', shuffle=True)
+            valid_loader = make_loader(train_test_id, mask_ind, args, train='valid', shuffle=True)
             with torch.no_grad():
                 n2 = len(valid_loader)
 
@@ -228,20 +219,15 @@ def main():
                     sigm_prec2.update((outputs, valid_labels_batch))
                     sigm_rec2.update((outputs, valid_labels_batch))
 
-                    outputs = torch.tanh(output_probs)
-                    outputs = (outputs > 0.0)
-                    tanh_prec.update((outputs, valid_labels_batch))
-                    tanh_rec.update((outputs, valid_labels_batch))
-                    tanh_prec2.update((outputs, valid_labels_batch))
-                    tanh_rec2.update((outputs, valid_labels_batch))
+                    sigm_40_prec.update((outputs, valid_labels_batch))
+                    sigm_60_prec.update((outputs, valid_labels_batch))
 
             valid_metrics = {'loss': loss,
                              'sigm_precision': sigm_prec.compute(),
                              'sigm_recall': sigm_rec.compute(),
                              'sigm_f1_score': sigm_f1_score.compute(),
-                             'tanh_precision': tanh_prec.compute(),
-                             'tanh_recall': tanh_rec.compute(),
-                             'tanh_f1_score': tanh_f1_score.compute(),
+                             'sigm_40_precision': sigm_40_prec.compute(),
+                             'sigm_60_precision': sigm_40_prec.compute()
                              }
             print('\t\t Loss: {:.6f} Prec: {:.4f} Recall: {:.4f} F1: {:.4f}'.format(
                                                                  valid_metrics['loss'],
@@ -252,10 +238,8 @@ def main():
             sigm_prec2.reset()
             sigm_rec.reset()
             sigm_rec2.reset()
-            tanh_prec.reset()
-            tanh_prec2.reset()
-            tanh_rec.reset()
-            tanh_rec2.reset()
+            sigm_40_prec.reset()
+            sigm_60_prec.reset()
 
             write_event(log, train_metrics=train_metrics, valid_metrics=valid_metrics)
 
@@ -264,15 +248,21 @@ def main():
             scheduler.step(valid_metrics['loss'])
 
             if args.mode in ['classic_AL', 'grid_AL']:
-                al_trainer = ActiveLearningTrainer(train_test_id, mask_ind, device, args, bootstrap_models, annotated, non_annotated)
                 if args.mode == 'classic_AL':
                     temp_time = time.time()
+                    al_trainer = ActiveLearningTrainer(train_test_id, mask_ind, device, args, bootstrap_models,
+                                                       annotated=annotated, non_annotated=non_annotated)
                     annotated = al_trainer.al_classic_step()
                     non_annotated = np.array(list(set(non_annotated) - set(annotated)))
                     print(time.time() - temp_time)
                 else:
-                    squares_annotated = al_trainer.al_grid_step()
-                    squares_non_annotated = np.array(list(set(squares_non_annotated) - set(squares_annotated)))
+                    temp_time = time.time()
+                    al_trainer = ActiveLearningTrainer(train_test_id, mask_ind, device, args, bootstrap_models,
+                                                       annotated_squares=annotated_squares,
+                                                       non_annotated_squares=non_annotated_squares)
+                    annotated_squares = al_trainer.al_grid_step()
+                    non_annotated_squares = np.array(list(set(non_annotated_squares) - set(annotated_squares)))
+                    print(time.time() - temp_time)
         except KeyboardInterrupt:
             return
     writer.close()

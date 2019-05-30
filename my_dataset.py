@@ -210,7 +210,7 @@ class GridDataset(Dataset):
         return image_with_mask, labels, name
 
 
-def make_loader(train_test_id, labels_ids, args, ids=np.array([]), batch_size=1, train=True,
+def make_loader(train_test_id, labels_ids, args, ids=np.array([]), train=True,
                 squares_annotated=np.array([]), squares_non_annotated=np.array([]), shuffle=True):
     if args.mode == 'grid_AL':
         data_set = GridDataset(train_test_id=train_test_id,
@@ -226,7 +226,7 @@ def make_loader(train_test_id, labels_ids, args, ids=np.array([]), batch_size=1,
                              train=train,
                              ids=ids)
     data_loader = DataLoader(data_set,
-                             batch_size=batch_size,
+                             batch_size=args.batch_size,
                              shuffle=shuffle,
                              num_workers=args.workers,
                              pin_memory=torch.cuda.is_available()

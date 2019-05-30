@@ -8,22 +8,27 @@ import bottleneck as bn
 
 class ActiveLearningTrainer:
 
-    def __init__(self, train_test_id, mask_ind, device, args, bootstrap_models, annotated, non_annotated):
+    def __init__(self, train_test_id, mask_ind, device, args, bootstrap_models, annotated=0, non_annotated=0,
+                 annotated_squares=0, non_annotated_squares=0):
         self.train_test_id = train_test_id
         self.mask_ind = mask_ind
         self.device = device
         self.args = args
         self.bootstrap_models = bootstrap_models
-        self.annotated = annotated
-        self.non_annotated = non_annotated
+        if args.mode == 'grid_AL':
+            self.annotated_squares = annotated_squares
+            self.non_annotated_squares = non_annotated_squares
+        else:
+            self.annotated = annotated
+            self.non_annotated = non_annotated
         self.sims = np.load('similarities_table.npy')
         self.uncertain_select_num = args.uncertain_select_num
-        self.sq_number = 224//args.square_size
+        self.sq_number = 224 // args.square_size
 
     def al_classic_step(self):
         if len(self.annotated) == 2294:
             return self.annotated
-        if all([len(self.annotated) >= 2294 - self.uncertain_select_num, len(self.annotated) < 2294]):
+        if 2294 > len(self.annotated) >= 2294 - self.uncertain_select_num:
             return np.append(self.annotated, self.non_annotated)
         most_uncertain = self.select_uncertain()
         most_representative = self.select_representative(most_uncertain)
@@ -32,32 +37,29 @@ class ActiveLearningTrainer:
         return np.append(self.annotated, most_representative)
 
     def al_grid_step(self):
-        annotated_number = len(self.annotated) // self.sq_number**2
+        annotated_number = len(self.annotated_squares) // self.sq_number**2
         if annotated_number == 2294:
-            return self.annotated
-        if all([annotated_number >= 2294 - self.uncertain_select_num, annotated_number < 2294]):
-            return np.append(self.annotated, self.non_annotated)
-        most_uncertain = self.select_uncertain()
-        return np.append(self.annotated, most_uncertain)
+            return self.annotated_squares
+        if 2294 > annotated_number >= 2294 - self.uncertain_select_num:
+            return np.append(self.annotated_squares, self.non_annotated_squares)
+        most_uncertain_squares = self.select_uncertain_square()
+        return np.append(self.annotated, most_uncertain_squares)
 
     def select_uncertain(self):
-        start = time.time()
         criterion = LossBinary(self.args.jaccard_weight)
         train_test_id = self.train_test_id
         mask_ind = self.mask_ind
         args = self.args
         non_annotated = self.non_annotated
-        dl = make_loader(train_test_id, mask_ind, args, train='active', ids=non_annotated, batch_size=args.batch_size, shuffle=False)
-        most_uncertain_ids = {}
-        arr = np.zeros([len(non_annotated)])
+        dl = make_loader(train_test_id, mask_ind, args, train='active', ids=non_annotated, shuffle=False)
+        most_uncertain_ids = np.zeros([len(non_annotated)])
         for i, (input_, input_labels, names) in enumerate(dl):
 
             input_tensor = input_.permute(0, 3, 1, 2)
             input_tensor = input_tensor.to(self.device).type(torch.cuda.FloatTensor)
             input_tensor.requires_grad = True
             input_labels = input_labels.to(self.device).type(torch.cuda.FloatTensor)
-
-            grad = torch.zeros([args.batch_size], dtype=torch.float64, device=self.device)
+            grad = torch.zeros([input_tensor.shape[0]], dtype=torch.float64, device=self.device)
 
             for model_id in range(1, args.K_models):
                 out = self.bootstrap_models[model_id](input_tensor)
@@ -66,46 +68,51 @@ class ActiveLearningTrainer:
                 loss.backward()
                 for j in range(input_tensor.shape[0]):
                     grad[j] += input_tensor.grad[j].abs().sum()
-            for k in range(input_tensor.shape[0]):
-                arr[i*args.batch_size + k] = grad[k]
 
-        indexes = bn.argpartition(-arr, args.uncertain_select_num)[:args.uncertain_select_num]
+            most_uncertain_ids[i * args.batch_size: i * args.batch_size + input_tensor.shape[0]] = grad.cpu()
+
+        indexes = bn.argpartition(-most_uncertain_ids, args.uncertain_select_num)[:args.uncertain_select_num]
         top_uncertain = non_annotated[indexes]
 
         return top_uncertain
 
     def select_uncertain_square(self):
-        start = time.time()
         criterion = nn.BCEWithLogitsLoss()
         train_test_id = self.train_test_id
         mask_ind = self.mask_ind
         args = self.args
-        non_annotated = self.non_annotated
-        dl = make_loader(train_test_id, mask_ind, args, train='active', ids=non_annotated, batch_size=1, shuffle=False)
-        most_uncertain_ids = {}
+        non_annotated_squares = self.non_annotated_squares
+        dl = make_loader(train_test_id, mask_ind, args, train='active', shuffle=False)
         g = len(dl)
-        sq = 224 // args.square_size
-        w = sq
-        h = sq
-        grads = torch.zeros([g, w, h], dtype=torch.int32, device=self.device)
+        print(g)
+        sq_num = 224 // args.square_size
+        sq_siz = args.square_size
+        most_uncertain_ids = torch.zeros([g * sq_num * sq_num], dtype=torch.float64, device=self.device)
+        print(most_uncertain_ids.shape, 'takkkkk')
         for i, (input_, input_labels, names) in enumerate(dl):
             input_tensor = input_.permute(0, 3, 1, 2)
             input_tensor = input_tensor.to(self.device).type(torch.cuda.FloatTensor)
             input_tensor.requires_grad = True
             input_labels = input_labels.to(self.device).type(torch.cuda.FloatTensor)
-            image_bootstrap_grad = 0
+            grad = torch.zeros([input_tensor.shape[0] * sq_num**2], dtype=torch.float64, device=self.device)
+            print(grad.shape)
             for model_id in range(1, args.K_models):
                 out = self.bootstrap_models[model_id](input_tensor)
                 self.bootstrap_models[model_id].zero_grad()
                 loss = criterion(out, input_labels)
                 loss.backward()
-                for w in range(224 // args.square_size):
-                    for h in range(224 // args.square_size):
-                        grads[w, h, i] += input_tensor.grad[w * sq:(w + 1) * sq, h * sq:(h + 1) * sq, :].abs().sum()
-                most_uncertain_ids[i * sq ** 2 + w * sq + h] = image_bootstrap_grad
-        uncertain = sorted(most_uncertain_ids, key=most_uncertain_ids.get, reverse=True)[:args.uncertain_select_num]
-        print(time.time() - start)
-        return uncertain
+                for j in range(input_tensor.shape[0]):
+                    for w in range(sq_num):
+                        for h in range(sq_num):
+                            grad[j*sq_num**2 + w*sq_num + h] += input_tensor.grad[j, :, w * sq_siz:(w + 1) * sq_siz,
+                                                        h * sq_siz:(h + 1) * sq_siz].abs().sum()
+            most_uncertain_ids[i * args.batch_size * sq_num**2:
+                               i * args.batch_size * sq_num**2 + input_tensor.shape[0] * sq_num**2] = grad.cpu()
+        squares_to_select = args.uncertain_select_num * sq_num**2
+        indexes = bn.argpartition(-most_uncertain_ids, squares_to_select)[:squares_to_select]
+        top_uncertain = non_annotated_squares[indexes]
+
+        return top_uncertain
 
     def select_representative(self, most_uncertain):
         args = self.args
