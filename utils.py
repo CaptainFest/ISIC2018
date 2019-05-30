@@ -24,18 +24,16 @@ def load_image(file_name, type='image'):
 def write_tensorboard(writer, train_metrics, valid_metrics):
 
     writer.add_scalars('loss', {'train': train_metrics['loss'], 'valid': valid_metrics['loss']}, train_metrics['epoch'])
-    writer.add_scalars('sigm_precision', {'train': train_metrics['sigm_precision'], 'valid': valid_metrics['sigm_precision']},
-                       train_metrics['epoch'])
-    writer.add_scalars('tanh_precision', {'train': train_metrics['tanh_precision'], 'valid': valid_metrics['tanh_precision']},
-                       train_metrics['epoch'])
+    writer.add_scalars('sigm_precision', {'train': train_metrics['sigm_precision'],
+                                          'valid': valid_metrics['sigm_precision']}, train_metrics['epoch'])
+    writer.add_scalars('sigm_40_precision', {'train': train_metrics['sigm_40_precision'],
+                                             'valid': valid_metrics['sigm_40_precision']}, train_metrics['epoch'])
+    writer.add_scalars('sigm_60_precision', {'train': train_metrics['sigm_60_precision'],
+                                             'valid': valid_metrics['sigm_60_precision']}, train_metrics['epoch'])
     writer.add_scalars('sigm_recall', {'train': train_metrics['sigm_recall'], 'valid': valid_metrics['sigm_recall']},
                        train_metrics['epoch'])
-    writer.add_scalars('tanh_recall', {'train': train_metrics['tanh_recall'], 'valid': valid_metrics['tanh_recall']},
-                       train_metrics['epoch'])
-    writer.add_scalars('sigm_f1_score', {'train': train_metrics['sigm_f1_score'], 'valid': valid_metrics['sigm_f1_score']},
-                       train_metrics['epoch'])
-    writer.add_scalars('tanh_f1_score', {'train': train_metrics['tanh_f1_score'], 'valid': valid_metrics['tanh_f1_score']},
-                       train_metrics['epoch'])
+    writer.add_scalars('sigm_f1_score', {'train': train_metrics['sigm_f1_score'],
+                                         'valid': valid_metrics['sigm_f1_score']}, train_metrics['epoch'])
 
 
 def save_weights(model, model_path, ep, train_metrics, valid_metrics):
