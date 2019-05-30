@@ -87,15 +87,13 @@ class ActiveLearningTrainer:
         print(g)
         sq_num = 224 // args.square_size
         sq_siz = args.square_size
-        most_uncertain_ids = torch.zeros([g * sq_num * sq_num], dtype=torch.float64, device=self.device)
-        print(most_uncertain_ids.shape, 'takkkkk')
+        most_uncertain_ids = np.zeros([2294 * sq_num**2])
         for i, (input_, input_labels, names) in enumerate(dl):
             input_tensor = input_.permute(0, 3, 1, 2)
             input_tensor = input_tensor.to(self.device).type(torch.cuda.FloatTensor)
             input_tensor.requires_grad = True
             input_labels = input_labels.to(self.device).type(torch.cuda.FloatTensor)
             grad = torch.zeros([input_tensor.shape[0] * sq_num**2], dtype=torch.float64, device=self.device)
-            print(grad.shape)
             for model_id in range(1, args.K_models):
                 out = self.bootstrap_models[model_id](input_tensor)
                 self.bootstrap_models[model_id].zero_grad()
@@ -104,8 +102,10 @@ class ActiveLearningTrainer:
                 for j in range(input_tensor.shape[0]):
                     for w in range(sq_num):
                         for h in range(sq_num):
-                            grad[j*sq_num**2 + w*sq_num + h] += input_tensor.grad[j, :, w * sq_siz:(w + 1) * sq_siz,
+                            temp = input_tensor.grad[j, :, w * sq_siz:(w + 1) * sq_siz,
                                                         h * sq_siz:(h + 1) * sq_siz].abs().sum()
+                            grad[j*sq_num**2 + w*sq_num + h] += temp
+
             most_uncertain_ids[i * args.batch_size * sq_num**2:
                                i * args.batch_size * sq_num**2 + input_tensor.shape[0] * sq_num**2] = grad.cpu()
         squares_to_select = args.uncertain_select_num * sq_num**2
