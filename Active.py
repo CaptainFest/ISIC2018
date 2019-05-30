@@ -43,7 +43,7 @@ class ActiveLearningTrainer:
         if 2294 > annotated_number >= 2294 - self.uncertain_select_num:
             return np.append(self.annotated_squares, self.non_annotated_squares)
         most_uncertain_squares = self.select_uncertain_square()
-        return np.append(self.annotated, most_uncertain_squares)
+        return np.append(self.annotated_squares, most_uncertain_squares)
 
     def select_uncertain(self):
         criterion = LossBinary(self.args.jaccard_weight)
