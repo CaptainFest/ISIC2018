@@ -166,9 +166,9 @@ def main():
                         sigm_rec.update((outputs1, train_labels_batch))
                         sigm_prec2.update((outputs1, train_labels_batch))
                         sigm_rec2.update((outputs1, train_labels_batch))
-                        outputs2 = (outputs > 0.5)
+                        outputs2 = (outputs > 0.4)
                         sigm_40_prec.update((outputs2, train_labels_batch))
-                        outputs3 = (outputs > 0.5)
+                        outputs3 = (outputs > 0.6)
                         sigm_60_prec.update((outputs3, train_labels_batch))
 
                 # save weights for each model after its training
@@ -224,7 +224,7 @@ def main():
                     outputs2 = (outputs > 0.4)
                     sigm_40_prec.update((outputs2, valid_labels_batch))
                     outputs3 = (outputs > 0.6)
-                    sigm_60_prec.update((outputs, valid_labels_batch))
+                    sigm_60_prec.update((outputs3, valid_labels_batch))
 
             valid_metrics = {'loss': loss,
                              'sigm_precision': sigm_prec.compute(),
