@@ -161,14 +161,15 @@ def main():
                     if model_id == 0:
 
                         outputs = torch.sigmoid(output_probs)
-                        outputs = (outputs > 0.5)
-                        sigm_prec.update((outputs, train_labels_batch))
-                        sigm_rec.update((outputs, train_labels_batch))
-                        sigm_prec2.update((outputs, train_labels_batch))
-                        sigm_rec2.update((outputs, train_labels_batch))
-
-                        sigm_40_prec.update((outputs, train_labels_batch))
-                        sigm_60_prec.update((outputs, train_labels_batch))
+                        outputs1 = (outputs > 0.5)
+                        sigm_prec.update((outputs1, train_labels_batch))
+                        sigm_rec.update((outputs1, train_labels_batch))
+                        sigm_prec2.update((outputs1, train_labels_batch))
+                        sigm_rec2.update((outputs1, train_labels_batch))
+                        outputs2 = (outputs > 0.5)
+                        sigm_40_prec.update((outputs2, train_labels_batch))
+                        outputs3 = (outputs > 0.5)
+                        sigm_60_prec.update((outputs3, train_labels_batch))
 
                 # save weights for each model after its training
                 # save_weights(model, model_id, args.model_path, epoch + 1, steps)
@@ -215,13 +216,14 @@ def main():
                     loss = criterion(output_probs, valid_labels_batch)
 
                     outputs = torch.sigmoid(output_probs)
-                    outputs = (outputs > 0.5)
-                    sigm_prec.update((outputs, valid_labels_batch))
-                    sigm_rec.update((outputs, valid_labels_batch))
-                    sigm_prec2.update((outputs, valid_labels_batch))
-                    sigm_rec2.update((outputs, valid_labels_batch))
-
-                    sigm_40_prec.update((outputs, valid_labels_batch))
+                    outputs1 = (outputs > 0.5)
+                    sigm_prec.update((outputs1, valid_labels_batch))
+                    sigm_rec.update((outputs1, valid_labels_batch))
+                    sigm_prec2.update((outputs1, valid_labels_batch))
+                    sigm_rec2.update((outputs1, valid_labels_batch))
+                    outputs2 = (outputs > 0.4)
+                    sigm_40_prec.update((outputs2, valid_labels_batch))
+                    outputs3 = (outputs > 0.6)
                     sigm_60_prec.update((outputs, valid_labels_batch))
 
             valid_metrics = {'loss': loss,
