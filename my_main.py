@@ -231,7 +231,7 @@ def main():
                              'sigm_recall': sigm_rec.compute(),
                              'sigm_f1_score': sigm_f1_score.compute(),
                              'sigm_40_precision': sigm_40_prec.compute(),
-                             'sigm_60_precision': sigm_40_prec.compute()
+                             'sigm_60_precision': sigm_60_prec.compute()
                              }
             print('\t\t Loss: {:.6f} Prec: {:.4f} Recall: {:.4f} F1: {:.4f}'.format(
                                                                  valid_metrics['loss'],
