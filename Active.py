@@ -87,6 +87,7 @@ class ActiveLearningTrainer:
         print(g)
         sq_num = 224 // args.square_size
         sq_siz = args.square_size
+        squares_to_select = args.uncertain_select_num * sq_num ** 2
         all_uncertainties = np.zeros([2294 * sq_num**2])
         for i, (input_, input_labels, names) in enumerate(dl):
             input_tensor = input_.permute(0, 3, 1, 2)
@@ -108,9 +109,9 @@ class ActiveLearningTrainer:
 
             all_uncertainties[i * args.batch_size * sq_num**2:
                                i * args.batch_size * sq_num**2 + input_tensor.shape[0] * sq_num**2] = grad.cpu()
-        non_annotated_uncertains = [all_uncertainties[i] for i in range(all_uncertainties) if i not in non_annotated_squares]
-        squares_to_select = args.uncertain_select_num * sq_num**2
-        indexes = bn.argpartition(-most_uncertain_ids, squares_to_select)[:squares_to_select]
+        # non_annotated_uncertains = [all_uncertainties[i] for i in range(all_uncertainties) if i not in non_annotated_squares]
+        non_annotated_uncertainties = np.array([set(all_uncertainties) - set(non_annotated_squares)])
+        indexes = bn.argpartition(-non_annotated_uncertainties, squares_to_select)[:squares_to_select]
         top_uncertain = non_annotated_squares[indexes]
 
         return top_uncertain
