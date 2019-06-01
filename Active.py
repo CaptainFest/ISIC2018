@@ -77,7 +77,7 @@ class ActiveLearningTrainer:
         return top_uncertain
 
     def select_uncertain_square(self):
-        criterion = nn.BCEWithLogitsLoss()
+        criterion = LossBinary(self.args.jaccard_weight)
         train_test_id = self.train_test_id
         mask_ind = self.mask_ind
         args = self.args
