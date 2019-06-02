@@ -24,20 +24,32 @@ def load_image(file_name, type='image'):
 def write_tensorboard(writer, train_metrics, valid_metrics):
 
     writer.add_scalars('loss', {'train': train_metrics['loss'], 'valid': valid_metrics['loss']}, train_metrics['epoch'])
-    writer.add_scalars('sigm_precision', {'train': train_metrics['sigm_precision'],
-                                          'valid': valid_metrics['sigm_precision']}, train_metrics['epoch'])
-    writer.add_scalars('sigm_40_precision', {'train': train_metrics['sigm_40_precision'],
-                                             'valid': valid_metrics['sigm_40_precision']}, train_metrics['epoch'])
-    writer.add_scalars('sigm_60_precision', {'train': train_metrics['sigm_60_precision'],
-                                             'valid': valid_metrics['sigm_60_precision']}, train_metrics['epoch'])
-    writer.add_scalars('sigm_recall', {'train': train_metrics['sigm_recall'], 'valid': valid_metrics['sigm_recall']},
-                       train_metrics['epoch'])
-    writer.add_scalars('sigm_f1_score', {'train': train_metrics['sigm_f1_score'],
-                                         'valid': valid_metrics['sigm_f1_score']}, train_metrics['epoch'])
+    writer.add_scalars('sigm_precision', {'train': train_metrics['precision'],
+                                          'valid': valid_metrics['precision'],
+                                          'train_40': train_metrics['precision_40'],
+                                          'valid_40': valid_metrics['precision_40'],
+                                          'train_60': train_metrics['precision_60'],
+                                          'valid_60': valid_metrics['precision_60']}, train_metrics['epoch'])
+
+    writer.add_scalars('sigm_recall', {'train': train_metrics['recall'],
+                                       'valid': valid_metrics['recall'],
+                                       'train_40': train_metrics['recall_40'],
+                                       'valid_40': valid_metrics['recall_40'],
+                                       'train_60': train_metrics['recall_60'],
+                                       'valid_60': valid_metrics['recall_60']}, train_metrics['epoch'])
+    writer.add_scalars('sigm_f1_score', {'train': train_metrics['f1_score'],
+                                         'valid': valid_metrics['f1_score'],
+                                         'train_40': train_metrics['f1_score_40'],
+                                         'valid_40': valid_metrics['f1_score_40'],
+                                         'train_60': train_metrics['f1_score_60'],
+                                         'valid_60': valid_metrics['f1_score_60']}, train_metrics['epoch'])
 
 
 def save_weights(model, model_path, ep, train_metrics, valid_metrics):
-    torch.save({'model': model.state_dict(), 'epoch_time': ep, 'valid_loss': valid_metrics['loss1'], 'train_loss': train_metrics['loss1']},
+    torch.save({'model': model.state_dict(),
+                'epoch_time': ep,
+                'valid_loss': valid_metrics['loss1'],
+                'train_loss': train_metrics['loss1']},
                str(model_path)
                )
 
@@ -45,9 +57,9 @@ def save_weights(model, model_path, ep, train_metrics, valid_metrics):
 def write_event(log, train_metrics, valid_metrics):
     CMD='epoch:{} time:{:.2f} train_loss:{:.4f} train_precision:{:.3f} train_recall:{:.3f} train_f1_score:{:.3f} ' \
         'valid_loss:{:.4f} valid_precision:{:.3f} valid_recall: {:.3f} valid_f1_score:{:.3f}'.\
-        format(train_metrics['epoch'], train_metrics['epoch_time'], train_metrics['loss'], train_metrics['sigm_precision'],
-               train_metrics['sigm_recall'], train_metrics['sigm_f1_score'],
-               valid_metrics['loss'], valid_metrics['sigm_precision'], valid_metrics['sigm_recall'], valid_metrics['sigm_f1_score']
+        format(train_metrics['epoch'], train_metrics['epoch_time'], train_metrics['loss'], train_metrics['precision'],
+               train_metrics['recall'], train_metrics['f1_score'],
+               valid_metrics['loss'], valid_metrics['precision'], valid_metrics['recall'], valid_metrics['f1_score']
     )
     log.write(json.dumps(CMD))
     log.write('\n')
