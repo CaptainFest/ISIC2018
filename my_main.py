@@ -2,7 +2,6 @@ import torch.nn
 import time
 import argparse
 from pathlib import Path
-from ignite.metrics import Precision, Recall, MetricsLambda
 import pandas as pd
 import numpy as np
 import json
@@ -17,11 +16,7 @@ from utils import write_event, write_tensorboard
 from my_dataset import make_loader
 from models import create_model
 from Active import ActiveLearningTrainer
-
-
-def f1(r, p):
-    return torch.mean(2 * p * r / (p + r + 1e-20)).item()
-
+from metrics import Metrics
 
 def main():
     parser = argparse.ArgumentParser()
@@ -64,13 +59,16 @@ def main():
     if args.mode in ['classic_AL', 'grid_AL']:
         len_train = len(train_test_id[train_test_id['Split'] == 'train'])
         indexes = np.arange(len_train)
+        np.random.seed(42)
         annotated = sorted(np.random.choice(indexes, args.begin_number, replace=False))
+        temp = [111, 208, 402, 408, 422, 430, 602, 759, 782, 913,
+                1288, 1290, 1349, 1726, 1731, 1825, 1847, 2060, 2160, 2285]
+        assert(set(annotated).intersection(temp))
         if args.mode == 'grid_AL':
             square_size = (224 // args.square_size)**2
             squares_indexes = np.arange(len_train * square_size)
-            annotated_squares = sorted(np.random.choice(indexes, args.begin_number, replace=False))
             annotated_squares = np.array([np.arange(an*square_size, (an+1)*square_size)
-                                          for an in annotated_squares]).ravel()
+                                          for an in annotated]).ravel()
             non_annotated_squares = np.array(list(set(squares_indexes) - set(annotated_squares)))
 
         non_annotated = np.array(list(set(indexes) - set(annotated)))
@@ -105,26 +103,6 @@ def main():
     if args.show_model:
         print(bootstrap_models[0])
 
-    prec = Precision(average=True, is_multilabel=True)
-    prec_40 = Precision(average=True, is_multilabel=True)
-    prec_60 = Precision(average=True, is_multilabel=True)
-
-    rec = Recall(average=True, is_multilabel=True)
-    rec_40 = Recall(average=True, is_multilabel=True)
-    rec_60 = Recall(average=True, is_multilabel=True)
-
-    prec_f1 = Precision(is_multilabel=True)
-    rec_f1 = Recall(is_multilabel=True)
-    f1_score = MetricsLambda(f1, rec_f1, prec_f1)
-
-    prec_f1_40 = Precision(is_multilabel=True)
-    rec_f1_40 = Recall(is_multilabel=True)
-    f1_score_40 = MetricsLambda(f1, rec_f1_40, prec_f1_40)
-
-    prec_f1_60 = Precision(is_multilabel=True)
-    rec_f1_60 = Recall(is_multilabel=True)
-    f1_score_60 = MetricsLambda(f1, rec_f1_60, prec_f1_60)
-
     criterion = LossBinary(args.jaccard_weight)
 
     log = root.joinpath('train.log').open('at', encoding='utf8')
@@ -133,6 +111,8 @@ def main():
     scheduler = ReduceLROnPlateau(optimizers[0], 'min', factor=0.8, patience=10, verbose=True)
 
     writer = SummaryWriter()
+
+    metric = Metrics()
 
     for ep in range(epoch, args.n_epochs):
         try:
@@ -172,43 +152,22 @@ def main():
                     optimizers[model_id].step()
 
                     if model_id == 0:
-
                         outputs = torch.sigmoid(output_probs)
-
-                        outputs1 = (outputs > 0.5)
-                        prec.update((outputs1, train_labels_batch))
-                        rec.update((outputs1, train_labels_batch))
-                        prec_f1.update((outputs1, train_labels_batch))
-                        rec_f1.update((outputs1, train_labels_batch))
-
-                        outputs_40 = (outputs > 0.4)
-                        prec_40.update((outputs_40, train_labels_batch))
-                        rec_40.update((outputs_40, train_labels_batch))
-                        prec_f1_40.update((outputs1, train_labels_batch))
-                        rec_f1_40.update((outputs1, train_labels_batch))
-
-                        outputs_60 = (outputs > 0.6)
-                        prec_60.update((outputs_60, train_labels_batch))
-                        rec_60.update((outputs_60, train_labels_batch))
-                        prec_f1_60.update((outputs1, train_labels_batch))
-                        rec_f1_60.update((outputs1, train_labels_batch))
-
-                # save weights for each model after its training
-                # save_weights(model, model_id, args.model_path, epoch + 1, steps)
+                        metric.update(outputs, train_labels_batch)
 
                 epoch_time = time.time() - start_time
 
             train_metrics = {'epoch': ep,
                              'loss': loss,
-                             'precision': prec.compute(),
-                             'precision_40': prec_40.compute(),
-                             'precision_60': prec_60.compute(),
-                             'recall': rec.compute(),
-                             'recall_40': prec_40.compute(),
-                             'recall_60': prec_60.compute(),
-                             'f1_score': f1_score.compute(),
-                             'f1_score_40': f1_score_40.compute(),
-                             'f1_score_60': f1_score_60.compute(),
+                             'precision': metric.prec.compute(),
+                             'precision_40': metric.prec_40.compute(),
+                             'precision_60': metric.prec_60.compute(),
+                             'recall': metric.rec.compute(),
+                             'recall_40': metric.prec_40.compute(),
+                             'recall_60': metric.prec_60.compute(),
+                             'f1_score': metric.f1_score.compute(),
+                             'f1_score_40': metric.f1_score_40.compute(),
+                             'f1_score_60': metric.f1_score_60.compute(),
                              'epoch_time': epoch_time}
             print('Epoch: {} Loss: {:.6f} Prec: {:.4f} Recall: {:.4f} F1: {:.4f} Time: {:.4f}'.format(
                                                          train_metrics['epoch'],
@@ -217,20 +176,7 @@ def main():
                                                          train_metrics['recall'],
                                                          train_metrics['f1_score'],
                                                          train_metrics['epoch_time']))
-            prec.reset()
-            prec_40.reset()
-            prec_60.reset()
-
-            rec.reset()
-            rec_40.reset()
-            rec_60.reset()
-
-            prec_f1.reset()
-            prec_f1_40.reset()
-            prec_f1_60.reset()
-            rec_f1.reset()
-            rec_f1_40.reset()
-            rec_f1_60.reset()
+            metric.reset()
 
             ##################################### validation ###########################################
             valid_loader = make_loader(train_test_id, mask_ind, args, train='valid', shuffle=True)
@@ -250,54 +196,25 @@ def main():
                     loss = criterion(output_probs, valid_labels_batch)
 
                     outputs = torch.sigmoid(output_probs)
+                    metric.update(outputs, valid_labels_batch)
 
-                    outputs1 = (outputs > 0.5)
-                    prec.update((outputs1, valid_labels_batch))
-                    rec.update((outputs1, valid_labels_batch))
-                    prec_f1.update((outputs1, valid_labels_batch))
-                    rec_f1.update((outputs1, valid_labels_batch))
-
-                    outputs_40 = (outputs > 0.4)
-                    prec_40.update((outputs_40, valid_labels_batch))
-                    rec_40.update((outputs_40, valid_labels_batch))
-                    prec_f1_40.update((outputs1, valid_labels_batch))
-                    rec_f1_40.update((outputs1, valid_labels_batch))
-
-                    outputs_60 = (outputs > 0.6)
-                    prec_60.update((outputs_60, valid_labels_batch))
-                    rec_60.update((outputs_60, valid_labels_batch))
-                    prec_f1_60.update((outputs1, valid_labels_batch))
-                    rec_f1_60.update((outputs1, valid_labels_batch))
 
             valid_metrics = {'loss': loss,
-                             'precision': prec.compute(),
-                             'precision_40': prec_40.compute(),
-                             'precision_60': prec_60.compute(),
-                             'recall': rec.compute(),
-                             'recall_40': prec_40.compute(),
-                             'recall_60': prec_60.compute(),
-                             'f1_score': f1_score.compute(),
-                             'f1_score_40': f1_score_40.compute(),
-                             'f1_score_60': f1_score_60.compute()}
+                             'precision': metric.prec.compute(),
+                             'precision_40': metric.prec_40.compute(),
+                             'precision_60': metric.prec_60.compute(),
+                             'recall': metric.rec.compute(),
+                             'recall_40': metric.prec_40.compute(),
+                             'recall_60': metric.prec_60.compute(),
+                             'f1_score': metric.f1_score.compute(),
+                             'f1_score_40': metric.f1_score_40.compute(),
+                             'f1_score_60': metric.f1_score_60.compute()}
             print('\t\t Loss: {:.6f} Prec: {:.4f} Recall: {:.4f} F1: {:.4f}'.format(
                                                                  valid_metrics['loss'],
                                                                  valid_metrics['precision'],
                                                                  valid_metrics['recall'],
                                                                  valid_metrics['f1_score']))
-            prec.reset()
-            prec_40.reset()
-            prec_60.reset()
-
-            rec.reset()
-            rec_40.reset()
-            rec_60.reset()
-
-            prec_f1.reset()
-            prec_f1_40.reset()
-            prec_f1_60.reset()
-            rec_f1.reset()
-            rec_f1_40.reset()
-            rec_f1_60.reset()
+            metric.reset()
 
             write_event(log, train_metrics=train_metrics, valid_metrics=valid_metrics)
 
