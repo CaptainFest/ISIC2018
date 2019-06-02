@@ -69,21 +69,15 @@ def main():
             square_size = (224 // args.square_size)**2
             squares_indexes = np.arange(len_train * square_size)
             annotated_squares = sorted(np.random.choice(indexes, args.begin_number, replace=False))
-            print(annotated_squares[:20])
             annotated_squares = np.array([np.arange(an*square_size, (an+1)*square_size)
                                           for an in annotated_squares]).ravel()
-            print(annotated_squares)
-            print(len(annotated_squares))
             non_annotated_squares = np.array(list(set(squares_indexes) - set(annotated_squares)))
 
         non_annotated = np.array(list(set(indexes) - set(annotated)))
         K_models = args.K_models
-    print(annotated_squares[:20] // (224 // args.square_size)**2)
-    print(annotated_squares[-20:] // (224//args.square_size)**2)
-    print(non_annotated_squares[:20])
 
     assert(set(non_annotated).intersection(sorted(non_annotated)))
-    return
+
     train_loader = make_loader(train_test_id, mask_ind, args, annotated,  train='train', shuffle=True)
 
     if True:
