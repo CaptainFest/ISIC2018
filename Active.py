@@ -81,7 +81,6 @@ class ActiveLearningTrainer:
         train_test_id = self.train_test_id
         mask_ind = self.mask_ind
         args = self.args
-        non_annotated_squares = self.non_annotated_squares
         dl = make_loader(train_test_id, mask_ind, args, train='active', shuffle=False)
         g = len(dl)
         print(g)
@@ -109,10 +108,23 @@ class ActiveLearningTrainer:
 
             all_uncertainties[i * args.batch_size * sq_num**2:
                                i * args.batch_size * sq_num**2 + input_tensor.shape[0] * sq_num**2] = grad.cpu()
-        # non_annotated_uncertains = [all_uncertainties[i] for i in range(all_uncertainties) if i not in non_annotated_squares]
-        non_annotated_uncertainties = np.array([set(all_uncertainties) - set(non_annotated_squares)])
+        print(all_uncertainties[:50])
+        # non_annotated_uncertainties = np.array([all_uncertainties[i] for i in range(len(all_uncertainties))
+        # if i not in self.annotated_squares])
+        non_annotated_uncertainties = all_uncertainties[self.non_annotated_squares]
+        print(non_annotated_uncertainties[:50])
         indexes = bn.argpartition(-non_annotated_uncertainties, squares_to_select)[:squares_to_select]
-        top_uncertain = non_annotated_squares[indexes]
+        """print(sorted(non_annotated_uncertainties)[-20:])
+        print(np.max(non_annotated_uncertainties))
+        print(np.argmax(non_annotated_uncertainties))
+
+        indexes = bn.argpartition(-non_annotated_uncertainties, squares_to_select)[:squares_to_select]
+        print(indexes[:20])
+        assert(sorted(non_annotated_uncertainties)[-squares_to_select:] ==
+               sorted(non_annotated_uncertainties[indexes])[-squares_to_select:])
+        print(sorted(non_annotated_uncertainties[indexes])[-20:])
+        assert(np.argmax(non_annotated_uncertainties) in indexes)"""
+        top_uncertain = self.non_annotated_squares[indexes]
 
         return top_uncertain
 
