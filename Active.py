@@ -21,7 +21,7 @@ class ActiveLearningTrainer:
         else:
             self.annotated = annotated
             self.non_annotated = non_annotated
-        self.sims = np.load('similarities_table.npy')
+        self.sims = np.load('similarities_table_64.npy')
         self.uncertain_select_num = args.uncertain_select_num
         self.sq_number = 224 // args.square_size
 
