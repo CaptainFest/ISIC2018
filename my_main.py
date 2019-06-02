@@ -98,7 +98,7 @@ def main():
     bootstrap_models = {}
     optimizers = {}
 
-    device = ('cuda')
+    device = ('cuda:1')
 
     # define models pool
     for i in range(K_models):
