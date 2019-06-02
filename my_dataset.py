@@ -86,7 +86,7 @@ class MyDataset(Dataset):
             image = (image - mean)/std
 
         return image, mask
-`   1
+
     def __getitem__(self, index):
 
         name = self.train_test_id[index]
