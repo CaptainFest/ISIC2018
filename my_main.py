@@ -76,8 +76,6 @@ def main():
         non_annotated = np.array(list(set(indexes) - set(annotated)))
         K_models = args.K_models
 
-    assert(set(non_annotated).intersection(sorted(non_annotated)))
-
     train_loader = make_loader(train_test_id, mask_ind, args, annotated,  train='train', shuffle=True)
 
     if True:
@@ -98,7 +96,7 @@ def main():
     bootstrap_models = {}
     optimizers = {}
 
-    device = ('cuda:1')
+    device = ('cuda')
 
     # define models pool
     for i in range(K_models):
@@ -107,13 +105,25 @@ def main():
     if args.show_model:
         print(bootstrap_models[0])
 
-    sigm_prec = Precision(average=True, is_multilabel=True)
-    sigm_rec = Recall(average=True, is_multilabel=True)
-    sigm_prec2 = Precision(is_multilabel=True)
-    sigm_rec2 = Recall(is_multilabel=True)
-    sigm_f1_score = MetricsLambda(f1, sigm_rec2, sigm_prec2)
-    sigm_40_prec = Precision(average=True, is_multilabel=True)
-    sigm_60_prec = Precision(average=True, is_multilabel=True)
+    prec = Precision(average=True, is_multilabel=True)
+    prec_40 = Precision(average=True, is_multilabel=True)
+    prec_60 = Precision(average=True, is_multilabel=True)
+
+    rec = Recall(average=True, is_multilabel=True)
+    rec_40 = Recall(average=True, is_multilabel=True)
+    rec_60 = Recall(average=True, is_multilabel=True)
+
+    prec_f1 = Precision(is_multilabel=True)
+    rec_f1 = Recall(is_multilabel=True)
+    f1_score = MetricsLambda(f1, rec_f1, prec_f1)
+
+    prec_f1_40 = Precision(is_multilabel=True)
+    rec_f1_40 = Recall(is_multilabel=True)
+    f1_score_40 = MetricsLambda(f1, rec_f1_40, prec_f1_40)
+
+    prec_f1_60 = Precision(is_multilabel=True)
+    rec_f1_60 = Recall(is_multilabel=True)
+    f1_score_60 = MetricsLambda(f1, rec_f1_60, prec_f1_60)
 
     criterion = LossBinary(args.jaccard_weight)
 
@@ -164,15 +174,24 @@ def main():
                     if model_id == 0:
 
                         outputs = torch.sigmoid(output_probs)
+
                         outputs1 = (outputs > 0.5)
-                        sigm_prec.update((outputs1, train_labels_batch))
-                        sigm_rec.update((outputs1, train_labels_batch))
-                        sigm_prec2.update((outputs1, train_labels_batch))
-                        sigm_rec2.update((outputs1, train_labels_batch))
-                        outputs2 = (outputs > 0.4)
-                        sigm_40_prec.update((outputs2, train_labels_batch))
-                        outputs3 = (outputs > 0.6)
-                        sigm_60_prec.update((outputs3, train_labels_batch))
+                        prec.update((outputs1, train_labels_batch))
+                        rec.update((outputs1, train_labels_batch))
+                        prec_f1.update((outputs1, train_labels_batch))
+                        rec_f1.update((outputs1, train_labels_batch))
+
+                        outputs_40 = (outputs > 0.4)
+                        prec_40.update((outputs_40, train_labels_batch))
+                        rec_40.update((outputs_40, train_labels_batch))
+                        prec_f1_40.update((outputs1, train_labels_batch))
+                        rec_f1_40.update((outputs1, train_labels_batch))
+
+                        outputs_60 = (outputs > 0.6)
+                        prec_60.update((outputs_60, train_labels_batch))
+                        rec_60.update((outputs_60, train_labels_batch))
+                        prec_f1_60.update((outputs1, train_labels_batch))
+                        rec_f1_60.update((outputs1, train_labels_batch))
 
                 # save weights for each model after its training
                 # save_weights(model, model_id, args.model_path, epoch + 1, steps)
@@ -181,25 +200,37 @@ def main():
 
             train_metrics = {'epoch': ep,
                              'loss': loss,
-                             'sigm_precision': sigm_prec.compute(),
-                             'sigm_recall': sigm_rec.compute(),
-                             'sigm_f1_score': sigm_f1_score.compute(),
-                             'sigm_40_precision': sigm_40_prec.compute(),
-                             'sigm_60_precision': sigm_60_prec.compute(),
+                             'precision': prec.compute(),
+                             'precision_40': prec_40.compute(),
+                             'precision_60': prec_60.compute(),
+                             'recall': rec.compute(),
+                             'recall_40': prec_40.compute(),
+                             'recall_60': prec_60.compute(),
+                             'f1_score': f1_score.compute(),
+                             'f1_score_40': f1_score_40.compute(),
+                             'f1_score_60': f1_score_60.compute(),
                              'epoch_time': epoch_time}
             print('Epoch: {} Loss: {:.6f} Prec: {:.4f} Recall: {:.4f} F1: {:.4f} Time: {:.4f}'.format(
                                                          train_metrics['epoch'],
                                                          train_metrics['loss'],
-                                                         train_metrics['sigm_precision'],
-                                                         train_metrics['sigm_recall'],
-                                                         train_metrics['sigm_f1_score'],
+                                                         train_metrics['precision'],
+                                                         train_metrics['recall'],
+                                                         train_metrics['f1_score'],
                                                          train_metrics['epoch_time']))
-            sigm_prec.reset()
-            sigm_prec2.reset()
-            sigm_rec.reset()
-            sigm_rec2.reset()
-            sigm_40_prec.reset()
-            sigm_60_prec.reset()
+            prec.reset()
+            prec_40.reset()
+            prec_60.reset()
+
+            rec.reset()
+            rec_40.reset()
+            rec_60.reset()
+
+            prec_f1.reset()
+            prec_f1_40.reset()
+            prec_f1_60.reset()
+            rec_f1.reset()
+            rec_f1_40.reset()
+            rec_f1_60.reset()
 
             ##################################### validation ###########################################
             valid_loader = make_loader(train_test_id, mask_ind, args, train='valid', shuffle=True)
@@ -207,9 +238,9 @@ def main():
                 n2 = len(valid_loader)
 
                 for i, (valid_image_batch, valid_labels_batch, names) in enumerate(valid_loader):
-                    if i == n2-2:
+                    if i == n2-3:
                         print(f'\r', end='')
-                    elif i < n2-2:
+                    elif i < n2-3:
                         print(f'\rBatch {i} / {n2} ', end='')
                     valid_image_batch = valid_image_batch.permute(0, 3, 1, 2).to(device).type(torch.cuda.FloatTensor)
                     valid_labels_batch = valid_labels_batch.to(device).type(torch.cuda.FloatTensor)
@@ -219,34 +250,54 @@ def main():
                     loss = criterion(output_probs, valid_labels_batch)
 
                     outputs = torch.sigmoid(output_probs)
+
                     outputs1 = (outputs > 0.5)
-                    sigm_prec.update((outputs1, valid_labels_batch))
-                    sigm_rec.update((outputs1, valid_labels_batch))
-                    sigm_prec2.update((outputs1, valid_labels_batch))
-                    sigm_rec2.update((outputs1, valid_labels_batch))
-                    outputs2 = (outputs > 0.4)
-                    sigm_40_prec.update((outputs2, valid_labels_batch))
-                    outputs3 = (outputs > 0.6)
-                    sigm_60_prec.update((outputs3, valid_labels_batch))
+                    prec.update((outputs1, valid_labels_batch))
+                    rec.update((outputs1, valid_labels_batch))
+                    prec_f1.update((outputs1, valid_labels_batch))
+                    rec_f1.update((outputs1, valid_labels_batch))
+
+                    outputs_40 = (outputs > 0.4)
+                    prec_40.update((outputs_40, valid_labels_batch))
+                    rec_40.update((outputs_40, valid_labels_batch))
+                    prec_f1_40.update((outputs1, valid_labels_batch))
+                    rec_f1_40.update((outputs1, valid_labels_batch))
+
+                    outputs_60 = (outputs > 0.6)
+                    prec_60.update((outputs_60, valid_labels_batch))
+                    rec_60.update((outputs_60, valid_labels_batch))
+                    prec_f1_60.update((outputs1, valid_labels_batch))
+                    rec_f1_60.update((outputs1, valid_labels_batch))
 
             valid_metrics = {'loss': loss,
-                             'sigm_precision': sigm_prec.compute(),
-                             'sigm_recall': sigm_rec.compute(),
-                             'sigm_f1_score': sigm_f1_score.compute(),
-                             'sigm_40_precision': sigm_40_prec.compute(),
-                             'sigm_60_precision': sigm_60_prec.compute()
-                             }
+                             'precision': prec.compute(),
+                             'precision_40': prec_40.compute(),
+                             'precision_60': prec_60.compute(),
+                             'recall': rec.compute(),
+                             'recall_40': prec_40.compute(),
+                             'recall_60': prec_60.compute(),
+                             'f1_score': f1_score.compute(),
+                             'f1_score_40': f1_score_40.compute(),
+                             'f1_score_60': f1_score_60.compute()}
             print('\t\t Loss: {:.6f} Prec: {:.4f} Recall: {:.4f} F1: {:.4f}'.format(
                                                                  valid_metrics['loss'],
-                                                                 valid_metrics['sigm_precision'],
-                                                                 valid_metrics['sigm_recall'],
-                                                                 valid_metrics['sigm_f1_score']))
-            sigm_prec.reset()
-            sigm_prec2.reset()
-            sigm_rec.reset()
-            sigm_rec2.reset()
-            sigm_40_prec.reset()
-            sigm_60_prec.reset()
+                                                                 valid_metrics['precision'],
+                                                                 valid_metrics['recall'],
+                                                                 valid_metrics['f1_score']))
+            prec.reset()
+            prec_40.reset()
+            prec_60.reset()
+
+            rec.reset()
+            rec_40.reset()
+            rec_60.reset()
+
+            prec_f1.reset()
+            prec_f1_40.reset()
+            prec_f1_60.reset()
+            rec_f1.reset()
+            rec_f1_40.reset()
+            rec_f1_60.reset()
 
             write_event(log, train_metrics=train_metrics, valid_metrics=valid_metrics)
 
