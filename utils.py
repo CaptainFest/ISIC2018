@@ -21,36 +21,68 @@ def load_image(file_name, type='image'):
     return file_np
 
 
-def write_tensorboard(writer, train_metrics, valid_metrics):
+def write_tensorboard(writer, train_metrics, valid_metrics, args):
 
-    writer.add_scalars('loss', {'train': train_metrics['loss'], 'valid': valid_metrics['loss']}, train_metrics['epoch'])
-    writer.add_scalars('precision', {'train_50': train_metrics['precision'],
-                                     'valid_50': valid_metrics['precision'],
-                                     'train_40': train_metrics['precision_40'],
-                                     'valid_40': valid_metrics['precision_40'],
-                                     'train_60': train_metrics['precision_60'],
-                                     'valid_60': valid_metrics['precision_60']}, train_metrics['epoch'])
+    writer.add_scalars('loss', {'train/'+args.model+'/'+str(args.batch_normalization)+'/'+str(args.pretrained):
+                                train_metrics['loss'],
+                                'valid/'+args.model+'/'+str(args.batch_normalization)+'/'+str(args.pretrained):
+                                valid_metrics['loss']},
+                       train_metrics['epoch'])
+    writer.add_scalars('precision', {'train_50/'+args.model+'/'+str(args.batch_normalization)+'/'+str(args.pretrained):
+                                     train_metrics['precision'],
+                                     'valid_50/'+args.model+'/'+str(args.batch_normalization)+'/'+str(args.pretrained):
+                                     valid_metrics['precision'],
+                                     'train_40/'+args.model+'/'+str(args.batch_normalization)+'/'+str(args.pretrained):
+                                     train_metrics['precision_40'],
+                                     'valid_40/'+args.model+'/'+str(args.batch_normalization)+'/'+str(args.pretrained):
+                                     valid_metrics['precision_40'],
+                                     'train_60/'+args.model+'/'+str(args.batch_normalization)+'/'+str(args.pretrained):
+                                     train_metrics['precision_60'],
+                                     'valid_60/'+args.model+'/'+str(args.batch_normalization)+'/'+str(args.pretrained):
+                                     valid_metrics['precision_60']},
+                       train_metrics['epoch'])
 
-    writer.add_scalars('recall', {'train_50': train_metrics['recall'],
-                                  'valid_50': valid_metrics['recall'],
-                                  'train_40': train_metrics['recall_40'],
-                                  'valid_40': valid_metrics['recall_40'],
-                                  'train_60': train_metrics['recall_60'],
-                                  'valid_60': valid_metrics['recall_60']}, train_metrics['epoch'])
+    writer.add_scalars('recall', {'train_50/'+args.model+'/'+str(args.batch_normalization)+'/'+str(args.pretrained):
+                                  train_metrics['recall'],
+                                  'valid_50/'+args.model+'/'+str(args.batch_normalization)+'/'+str(args.pretrained):
+                                  valid_metrics['recall'],
+                                  'train_40/'+args.model+'/'+str(args.batch_normalization)+'/'+str(args.pretrained):
+                                  train_metrics['recall_40'],
+                                  'valid_40/'+args.model+'/'+str(args.batch_normalization)+'/'+str(args.pretrained):
+                                  valid_metrics['recall_40'],
+                                  'train_60/'+args.model+'/'+str(args.batch_normalization)+'/'+str(args.pretrained):
+                                  train_metrics['recall_60'],
+                                  'valid_60/'+args.model+'/'+str(args.batch_normalization)+'/'+str(args.pretrained):
+                                  valid_metrics['recall_60']},
+                       train_metrics['epoch'])
 
-    writer.add_scalars('f1_score', {'train_50': train_metrics['f1_score'],
-                                    'valid_50': valid_metrics['f1_score'],
-                                    'train_40': train_metrics['f1_score_40'],
-                                    'valid_40': valid_metrics['f1_score_40'],
-                                    'train_60': train_metrics['f1_score_60'],
-                                    'valid_60': valid_metrics['f1_score_60']}, train_metrics['epoch'])
+    writer.add_scalars('f1_score', {'train_50/'+args.model+'/'+str(args.batch_normalization)+'/'+str(args.pretrained):
+                                    train_metrics['f1_score'],
+                                    'valid_50/'+args.model+'/'+str(args.batch_normalization)+'/'+str(args.pretrained):
+                                    valid_metrics['f1_score'],
+                                    'train_40/'+args.model+'/'+str(args.batch_normalization)+'/'+str(args.pretrained):
+                                    train_metrics['f1_score_40'],
+                                    'valid_40/'+args.model+'/'+str(args.batch_normalization)+'/'+str(args.pretrained):
+                                    valid_metrics['f1_score_40'],
+                                    'train_60/'+args.model+'/'+str(args.batch_normalization)+'/'+str(args.pretrained):
+                                    train_metrics['f1_score_60'],
+                                    'valid_60/'+args.model+'/'+str(args.batch_normalization)+'/'+str(args.pretrained):
+                                    valid_metrics['f1_score_60']},
+                       train_metrics['epoch'])
 
-    writer.add_scalars('accuracy', {'train_50': train_metrics['accuracy'],
-                                    'valid_50': train_metrics['accuracy'],
-                                    'train_40': train_metrics['accuracy_40'],
-                                    'valid_40': train_metrics['accuracy_40'],
-                                    'train_60': train_metrics['accuracy_60'],
-                                    'valid_60': train_metrics['accuracy_60']}, train_metrics['epoch'])
+    writer.add_scalars('accuracy', {'train_50/'+args.model+'/'+str(args.batch_normalization)+'/'+str(args.pretrained):
+                                    train_metrics['accuracy'],
+                                    'valid_50/'+args.model+'/'+str(args.batch_normalization)+'/'+str(args.pretrained):
+                                    train_metrics['accuracy'],
+                                    'train_40/'+args.model+'/'+str(args.batch_normalization)+'/'+str(args.pretrained):
+                                    train_metrics['accuracy_40'],
+                                    'valid_40/'+args.model+'/'+str(args.batch_normalization)+'/'+str(args.pretrained):
+                                    train_metrics['accuracy_40'],
+                                    'train_60/'+args.model+'/'+str(args.batch_normalization)+'/'+str(args.pretrained):
+                                    train_metrics['accuracy_60'],
+                                    'valid_60/'+args.model+'/'+str(args.batch_normalization)+'/'+str(args.pretrained):
+                                    train_metrics['accuracy_60']},
+                       train_metrics['epoch'])
 
 
 def save_weights(model, model_path, ep, train_metrics, valid_metrics):

@@ -91,15 +91,13 @@ def train(args):
     scheduler = ReduceLROnPlateau(optimizers[0], 'min', factor=0.8, patience=10, verbose=True)
 
     writer = SummaryWriter()
-
     metric = Metrics()
 
     for ep in range(epoch, args.n_epochs):
         try:
             start_time = time.time()
             for model_id in range(K_models):
-                # state = load_weights(model_id)
-                # model.load_state_dict(state['model'])
+
                 if args.pretrained:
                     if ep == 50:
                         for param in bootstrap_models[model_id].parameters():
@@ -135,7 +133,7 @@ def train(args):
                         outputs = torch.sigmoid(output_probs)
                         metric.update(outputs, train_labels_batch)
 
-                epoch_time = time.time() - start_time
+            epoch_time = time.time() - start_time
 
             train_metrics = metric.compute_train(loss, ep, epoch_time)
             print('Epoch: {} Loss: {:.6f} Prec: {:.4f} Recall: {:.4f} F1: {:.4f} Time: {:.4f}'.format(
@@ -174,10 +172,8 @@ def train(args):
                                                                  valid_metrics['recall'],
                                                                  valid_metrics['f1_score']))
             metric.reset()
-
             write_event(log, train_metrics=train_metrics, valid_metrics=valid_metrics)
-
-            write_tensorboard(writer, train_metrics, valid_metrics)
+            write_tensorboard(writer, train_metrics, valid_metrics, args)
 
             scheduler.step(valid_metrics['loss'])
 
@@ -230,16 +226,30 @@ if __name__ == "__main__":
     arg('--cuda1', action='store_true')
     args = parser.parse_args()
 
-    if args.pool_train:
+    root = Path(args.root)
+    root.mkdir(exist_ok=True, parents=True)
+    log = root.joinpath('train.log').open('at', encoding='utf8')
+
+    if args.pool_train and args.mode == 'simple':
         configs = {'model': ['vgg16', 'resnet50'],
                    'batch_normalization': [True, False],
                    'pretrained': [True, False]}
-        args.model = 'vgg16'
-        args.batch_normalization = True
-        args.pretrained = True
-        train(args)
-        args.model = 'resnet50'
-        args.pretrained = False
-        train(args)
+        i = 0
+        for m in configs['model']:
+            for pretr in configs['pretrained']:
+                args.model = m
+                args.pretrained = pretr
+                if m == 'vgg16':
+                    for bn in configs['batch_normalization']:
+                        args.batch_normalization = bn
+                        root.joinpath('params' + str(i) + '.json').write_text(
+                            json.dumps(vars(args), indent=True, sort_keys=True))
+                        train(args)
+                        i += 1
+                else:
+                    root.joinpath('params'+str(i)+'.json').write_text(
+                        json.dumps(vars(args), indent=True, sort_keys=True))
+                    train(args)
+                    i += 1
     else:
         train(args)
