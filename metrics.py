@@ -40,14 +40,14 @@ class Metrics():
         outputs_40 = (outputs > 0.4)
         self.prec_40.update((outputs_40, labels_batch))
         self.rec_40.update((outputs_40, labels_batch))
-        self.prec_f1_40.update((outputs1, labels_batch))
-        self.rec_f1_40.update((outputs1, labels_batch))
+        self.prec_f1_40.update((outputs_40, labels_batch))
+        self.rec_f1_40.update((outputs_40, labels_batch))
 
         outputs_60 = (outputs > 0.6)
         self.prec_60.update((outputs_60, labels_batch))
         self.rec_60.update((outputs_60, labels_batch))
-        self.prec_f1_60.update((outputs1, labels_batch))
-        self.rec_f1_60.update((outputs1, labels_batch))
+        self.prec_f1_60.update((outputs_60, labels_batch))
+        self.rec_f1_60.update((outputs_60, labels_batch))
 
     def reset(self):
 
