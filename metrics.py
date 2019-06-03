@@ -93,7 +93,7 @@ class Metrics():
 
     def compute_train(self, loss, ep, epoch_time):
 
-        return {'epoch': ep,
+        return {'epoch': int(ep),
                 'loss': loss,
                 'accuracy': self.acc.compute(),
                 'accuracy_40': self.acc_40.compute(),
