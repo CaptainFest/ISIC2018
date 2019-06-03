@@ -18,30 +18,8 @@ from models import create_model
 from Active import ActiveLearningTrainer
 from metrics import Metrics
 
-def main():
-    parser = argparse.ArgumentParser()
-    arg = parser.add_argument
-    arg('--model', type=str, default='vgg16', choices=['vgg16', 'resnet50', 'resnet152', 'inception_v3'])
-    arg('--root', type=str, default='runs/debug')
-    arg('--batch-normalization', action='store_true')  # if --batch-normalization parameter then True
-    arg('--pretrained', action='store_true')           # if --pretrained parameter then True
-    arg('--lr', type=float, default=0.001)
-    arg('--batch-size', type=int, default=1)
-    arg('--workers', type=int, default=1)
-    arg('--augment-list', type=list, nargs='*', default=[])
-    arg('--image-path', type=str, default='/home/irek/My_work/train/h5_224/')
-    arg('--mask-path', type=str, default='/home/irek/My_work/train/binary/')
-    arg('--n-epochs', type=int, default=1)
-    arg('--K-models', type=int, default=5)
-    arg('--begin-number', type=int, default=20)
-    arg('--show-model', action='store_true')
-    arg('--uncertain_select-num', type=int, default=10)
-    arg('--representative-select-num', type=int, default=5)
-    arg('--square-size', type=int, default=16)
-    arg('--jaccard-weight', type=float, default=0.)
-    arg('--conv-learn-enabled', action='store_true')   # if --conv-learn-enabled parameter then True
-    arg('--mode', type=str, default='simple', choices=['simple', 'classic_AL', 'grid_AL'])
-    args = parser.parse_args()
+
+def train(args):
 
     epoch = 0
 
@@ -94,7 +72,9 @@ def main():
     bootstrap_models = {}
     optimizers = {}
 
-    device = ('cuda:1')
+    device = 'cuda:0'
+    if args.cuda1:
+        device = 'cuda:1'
 
     # define models pool
     for i in range(K_models):
@@ -184,7 +164,7 @@ def main():
                 n2 = len(valid_loader)
 
                 for i, (valid_image_batch, valid_labels_batch, names) in enumerate(valid_loader):
-                    if i == n2-3:
+                    if i == n2-1:
                         print(f'\r', end='')
                     elif i < n2-3:
                         print(f'\rBatch {i} / {n2} ', end='')
@@ -244,4 +224,43 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+
+    parser = argparse.ArgumentParser()
+    arg = parser.add_argument
+    arg('--model', type=str, default='vgg16', choices=['vgg16', 'resnet50', 'resnet152', 'inception_v3'])
+    arg('--root', type=str, default='runs/debug')
+    arg('--batch-normalization', action='store_true')  # if --batch-normalization parameter then True
+    arg('--pretrained', action='store_true')           # if --pretrained parameter then True
+    arg('--lr', type=float, default=0.001)
+    arg('--batch-size', type=int, default=1)
+    arg('--workers', type=int, default=1)
+    arg('--augment-list', type=list, nargs='*', default=[])
+    arg('--image-path', type=str, default='/home/irek/My_work/train/h5_224/')
+    arg('--mask-path', type=str, default='/home/irek/My_work/train/binary/')
+    arg('--n-epochs', type=int, default=1)
+    arg('--K-models', type=int, default=5)
+    arg('--begin-number', type=int, default=20)
+    arg('--show-model', action='store_true')
+    arg('--uncertain_select-num', type=int, default=10)
+    arg('--representative-select-num', type=int, default=5)
+    arg('--square-size', type=int, default=16)
+    arg('--jaccard-weight', type=float, default=0.)
+    arg('--conv-learn-enabled', action='store_true')   # if --conv-learn-enabled parameter then True
+    arg('--mode', type=str, default='simple', choices=['simple', 'classic_AL', 'grid_AL'])
+    arg('--pool-train', action='store_true')
+    arg('--cuda1', action='store_true')
+    args = parser.parse_args()
+
+    if args.pool_train:
+        configs = {'model': ['vgg16', 'resnet50'],
+                   'batch_normalization': [True, False],
+                   'pretrained': [True, False]}
+        args.model = 'vgg16'
+        args.batch_normalization = True
+        args.pretrained = True
+        train(args)
+        args.model = 'resnet50'
+        args.pretrained = False
+        train(args)
+    else:
+        train(args)
