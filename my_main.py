@@ -137,18 +137,7 @@ def train(args):
 
                 epoch_time = time.time() - start_time
 
-            train_metrics = {'epoch': ep,
-                             'loss': loss,
-                             'precision': metric.prec.compute(),
-                             'precision_40': metric.prec_40.compute(),
-                             'precision_60': metric.prec_60.compute(),
-                             'recall': metric.rec.compute(),
-                             'recall_40': metric.prec_40.compute(),
-                             'recall_60': metric.prec_60.compute(),
-                             'f1_score': metric.f1_score.compute(),
-                             'f1_score_40': metric.f1_score_40.compute(),
-                             'f1_score_60': metric.f1_score_60.compute(),
-                             'epoch_time': epoch_time}
+            train_metrics = metric.compute_train(loss, ep, epoch_time)
             print('Epoch: {} Loss: {:.6f} Prec: {:.4f} Recall: {:.4f} F1: {:.4f} Time: {:.4f}'.format(
                                                          train_metrics['epoch'],
                                                          train_metrics['loss'],
@@ -178,17 +167,7 @@ def train(args):
                     outputs = torch.sigmoid(output_probs)
                     metric.update(outputs, valid_labels_batch)
 
-
-            valid_metrics = {'loss': loss,
-                             'precision': metric.prec.compute(),
-                             'precision_40': metric.prec_40.compute(),
-                             'precision_60': metric.prec_60.compute(),
-                             'recall': metric.rec.compute(),
-                             'recall_40': metric.prec_40.compute(),
-                             'recall_60': metric.prec_60.compute(),
-                             'f1_score': metric.f1_score.compute(),
-                             'f1_score_40': metric.f1_score_40.compute(),
-                             'f1_score_60': metric.f1_score_60.compute()}
+            valid_metrics = metric.compute_valid(loss)
             print('\t\t Loss: {:.6f} Prec: {:.4f} Recall: {:.4f} F1: {:.4f}'.format(
                                                                  valid_metrics['loss'],
                                                                  valid_metrics['precision'],
