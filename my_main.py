@@ -181,6 +181,7 @@ def train(args):
                     al_trainer = ActiveLearningTrainer(train_test_id, mask_ind, device, args, bootstrap_models,
                                                        annotated=annotated, non_annotated=non_annotated)
                     annotated = al_trainer.al_classic_step()
+                    print(len(annotated))
                     non_annotated = np.array(list(set(non_annotated) - set(annotated)))
                     print('classic_time', time.time() - temp_time)
                 else:
