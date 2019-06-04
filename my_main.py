@@ -38,7 +38,7 @@ def train(args):
         len_train = len(train_test_id[train_test_id['Split'] == 'train'])
         indexes = np.arange(len_train)
         np.random.seed(42)
-        annotated = sorted(np.random.choice(indexes, args.begin_number, replace=False))
+        annotated = np.sort(np.random.choice(indexes, args.begin_number, replace=False))
         temp = [111, 208, 402, 408, 422, 430, 602, 759, 782, 913,
                 1288, 1290, 1349, 1726, 1731, 1825, 1847, 2060, 2160, 2285]
         assert(set(annotated).intersection(temp))
@@ -48,10 +48,8 @@ def train(args):
             annotated_squares = np.array([np.arange(an*square_size, (an+1)*square_size)
                                           for an in annotated]).ravel()
             non_annotated_squares = np.array(list(set(squares_indexes) - set(annotated_squares)))
-
         non_annotated = np.array(list(set(indexes) - set(annotated)))
         K_models = args.K_models
-
     train_loader = make_loader(train_test_id, mask_ind, args, annotated,  train='train', shuffle=True)
 
     if True:
@@ -184,15 +182,16 @@ def train(args):
                                                        annotated=annotated, non_annotated=non_annotated)
                     annotated = al_trainer.al_classic_step()
                     non_annotated = np.array(list(set(non_annotated) - set(annotated)))
-                    print(time.time() - temp_time)
+                    print('classic_time', time.time() - temp_time)
                 else:
                     temp_time = time.time()
                     al_trainer = ActiveLearningTrainer(train_test_id, mask_ind, device, args, bootstrap_models,
                                                        annotated_squares=annotated_squares,
                                                        non_annotated_squares=non_annotated_squares)
                     annotated_squares = al_trainer.al_grid_step()
+                    print(len(annotated_squares) // (224//args.square_size)**2)
                     non_annotated_squares = np.array(list(set(non_annotated_squares) - set(annotated_squares)))
-                    print(time.time() - temp_time)
+                    print('grid_time', time.time() - temp_time)
         except KeyboardInterrupt:
             return
     writer.close()
@@ -223,6 +222,7 @@ if __name__ == "__main__":
     arg('--conv-learn-enabled', action='store_true')   # if --conv-learn-enabled parameter then True
     arg('--mode', type=str, default='simple', choices=['simple', 'classic_AL', 'grid_AL'])
     arg('--pool-train', action='store_true')
+    arg('--al-pool-train', action='store_true')
     arg('--cuda1', action='store_true')
     args = parser.parse_args()
 
@@ -251,5 +251,14 @@ if __name__ == "__main__":
                         json.dumps(vars(args), indent=True, sort_keys=True))
                     train(args)
                     i += 1
+    elif args.al_pool_train:
+        configs = {'mode': ['classic_AL', 'grid_AL']}
+        i = 0
+        for m in configs['mode']:
+            args.mode = m
+            root.joinpath('params'+str(i)+'.json').write_text(
+                json.dumps(vars(args), indent=True, sort_keys=True))
+            train(args)
+            i += 1
     else:
         train(args)
