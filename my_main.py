@@ -224,6 +224,7 @@ if __name__ == "__main__":
     arg('--mode', type=str, default='simple', choices=['simple', 'classic_AL', 'grid_AL'])
     arg('--pool-train', action='store_true')
     arg('--al-pool-train', action='store_true')
+    arg('--jac_train', action='store_true')
     arg('--cuda1', action='store_true')
     args = parser.parse_args()
 
@@ -258,6 +259,15 @@ if __name__ == "__main__":
         for m in configs['mode']:
             args.mode = m
             root.joinpath('params'+str(i)+'.json').write_text(
+                json.dumps(vars(args), indent=True, sort_keys=True))
+            train(args)
+            i += 1
+    elif args.jac_train:
+        configs = {'jaccard-weight': [0., 0.5, 1.]}
+        i = 0
+        for m in configs['jaccard-weight']:
+            args.jaccard_weight = m
+            root.joinpath('params' + str(i) + '.json').write_text(
                 json.dumps(vars(args), indent=True, sort_keys=True))
             train(args)
             i += 1
