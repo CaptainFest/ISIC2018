@@ -275,7 +275,6 @@ if __name__ == "__main__":
     elif args.grid_train:
         configs = {'square_size': [32, 8]}
         i = 0
-        args.n_epoch = 75
         for s in configs['square_size']:
             args.square_size = s
             root.joinpath('params' + str(i) + '.json').write_text(

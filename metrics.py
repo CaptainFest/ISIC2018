@@ -80,15 +80,18 @@ class Metrics():
     def compute_valid(self, loss):
 
         return {'loss': loss,
-                 'precision': self.prec.compute(),
-                 'precision_40': self.prec_40.compute(),
-                 'precision_60': self.prec_60.compute(),
-                 'recall': self.rec.compute(),
-                 'recall_40': self.prec_40.compute(),
-                 'recall_60': self.prec_60.compute(),
-                 'f1_score': self.f1_score.compute(),
-                 'f1_score_40': self.f1_score_40.compute(),
-                 'f1_score_60': self.f1_score_60.compute(),
+                'accuracy': self.acc.compute(),
+                'accuracy_40': self.acc_40.compute(),
+                'accuracy_60': self.acc_60.compute(),
+                'precision': self.prec.compute(),
+                'precision_40': self.prec_40.compute(),
+                'precision_60': self.prec_60.compute(),
+                'recall': self.rec.compute(),
+                'recall_40': self.prec_40.compute(),
+                'recall_60': self.prec_60.compute(),
+                'f1_score': self.f1_score.compute(),
+                'f1_score_40': self.f1_score_40.compute(),
+                'f1_score_60': self.f1_score_60.compute(),
                 }
 
     def compute_train(self, loss, ep, epoch_time):
