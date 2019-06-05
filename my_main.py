@@ -225,6 +225,7 @@ if __name__ == "__main__":
     arg('--pool-train', action='store_true')
     arg('--al-pool-train', action='store_true')
     arg('--jac_train', action='store_true')
+    arg('--grid_train', action='store_true')
     arg('--cuda1', action='store_true')
     args = parser.parse_args()
 
@@ -267,6 +268,16 @@ if __name__ == "__main__":
         i = 0
         for m in configs['jaccard-weight']:
             args.jaccard_weight = m
+            root.joinpath('params' + str(i) + '.json').write_text(
+                json.dumps(vars(args), indent=True, sort_keys=True))
+            train(args)
+            i += 1
+    elif args.grid_train:
+        configs = {'square_size': [32, 8]}
+        i = 0
+        args.n_epoch = 75
+        for s in configs['square_size']:
+            args.square_size = s
             root.joinpath('params' + str(i) + '.json').write_text(
                 json.dumps(vars(args), indent=True, sort_keys=True))
             train(args)
