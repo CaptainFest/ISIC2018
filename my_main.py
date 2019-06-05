@@ -273,7 +273,7 @@ if __name__ == "__main__":
             train(args)
             i += 1
     elif args.grid_train:
-        configs = {'square_size': [32, 8]}
+        configs = {'square_size': [32, 8, 16]}
         i = 0
         for s in configs['square_size']:
             args.square_size = s
