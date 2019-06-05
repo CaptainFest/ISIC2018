@@ -73,15 +73,15 @@ def write_tensorboard(writer, train_metrics, valid_metrics, args):
     writer.add_scalars('accuracy', {'train_50/'+args.model+'/'+str(args.batch_normalization)+'/'+str(args.pretrained):
                                     train_metrics['accuracy'],
                                     'valid_50/'+args.model+'/'+str(args.batch_normalization)+'/'+str(args.pretrained):
-                                    train_metrics['accuracy'],
+                                    valid_metrics['accuracy'],
                                     'train_40/'+args.model+'/'+str(args.batch_normalization)+'/'+str(args.pretrained):
                                     train_metrics['accuracy_40'],
                                     'valid_40/'+args.model+'/'+str(args.batch_normalization)+'/'+str(args.pretrained):
-                                    train_metrics['accuracy_40'],
+                                    valid_metrics['accuracy_40'],
                                     'train_60/'+args.model+'/'+str(args.batch_normalization)+'/'+str(args.pretrained):
                                     train_metrics['accuracy_60'],
                                     'valid_60/'+args.model+'/'+str(args.batch_normalization)+'/'+str(args.pretrained):
-                                    train_metrics['accuracy_60']},
+                                    valid_metrics['accuracy_60']},
                        train_metrics['epoch'])
 
 
