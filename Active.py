@@ -85,7 +85,7 @@ class ActiveLearningTrainer:
         g = len(dl)
         sq_num = 224 // args.square_size
         sq_siz = args.square_size
-        squares_to_select = args.representative_select_num * sq_num ** 2
+        squares_to_select = args.uncertain_select_num * sq_num ** 2
         all_uncertainties = np.zeros([2294 * sq_num**2])
         for i, (input_, input_labels, names) in enumerate(dl):
             input_tensor = input_.permute(0, 3, 1, 2)
