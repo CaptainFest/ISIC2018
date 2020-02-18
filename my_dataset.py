@@ -121,6 +121,7 @@ class GridDataset(Dataset):
         self.train = train
         self.square_size = args.square_size
         self.mode = args.mode
+        self.attribute = args.attribute
         self.squares_annotated = squares_annotated
         self.squares_non_annotated = squares_non_annotated
         if train == 'train' or train == 'active':
@@ -190,7 +191,7 @@ class GridDataset(Dataset):
         path = self.image_path
         # Load image and from h5
         image = load_image(os.path.join(path, '%s.h5' % name), 'image')
-        mask = load_image(os.path.join(path, '%s_attribute_all.h5' % name), 'mask')
+        mask = load_image(os.path.join(path, '{}_{}.h5'.format(name, self.attribute)), 'mask')
 
         if self.train == 'train':
             if self.augment_list:

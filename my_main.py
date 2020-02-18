@@ -228,6 +228,7 @@ if __name__ == "__main__":
                                                                    'attribute_streaks'])
     arg('--conv-learn-enabled', action='store_true')   # if --conv-learn-enabled parameter then True
     arg('--mode', type=str, default='simple', choices=['simple', 'classic_AL', 'grid_AL'])
+    arg('--freezing', action='store_false')
     arg('--al-pool-train', action='store_true')
     arg('--jac_train', action='store_true')
     arg('--grid_train', action='store_true')

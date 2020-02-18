@@ -5,8 +5,6 @@ from torch.optim import Adam
 
 def create_model(args, device):
 
-    out_shape = 5
-
     if args.model == 'vgg16':
         if args.pretrained:
             if args.batch_normalization:
@@ -40,17 +38,24 @@ def create_model(args, device):
         for param in model.parameters():
             param.requires_grad = False
 
+    if args.attribute == 'attribute_all':
+        input_num = 8
+        out_shape = 5
+    else:
+        input_num = 4
+        out_shape = 1
+
     # channels replacement
     if args.model in ['resnet50', 'resnet152']:
-        model.conv1 = nn.Conv2d(8, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False)
+        model.conv1 = nn.Conv2d(input_num, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False)
         last_layer_in_channels = model.fc.in_features
         model.fc = nn.Linear(last_layer_in_channels, out_shape)
     elif args.model == 'vgg16':
-        model.features[0] = nn.Conv2d(8, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        model.features[0] = nn.Conv2d(input_num, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
         num_ftrs = model.classifier[6].in_features
         model.classifier[6] = nn.Linear(num_ftrs, out_shape)
     elif args.model == 'inception_v3':
-        model.Conv2d_1a_3x3.conv = nn.Conv2d(8, 32, kernel_size=(3, 3), stride=(2, 2), bias=False)
+        model.Conv2d_1a_3x3.conv = nn.Conv2d(input_num, 32, kernel_size=(3, 3), stride=(2, 2), bias=False)
         last_layer_in_channels = model.fc.in_features
         model.fc = nn.Linear(last_layer_in_channels, out_shape)
     model.to(device)
