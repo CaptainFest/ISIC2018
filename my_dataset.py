@@ -16,6 +16,7 @@ class MyDataset(Dataset):
         self.labels_ids = labels_ids
         self.image_path = args.image_path
         self.pretrained = args.pretrained
+        self.attribute = args.attribute
         self.augment_list = args.augment_list
         self.train = train
         self.square_size = args.square_size
@@ -93,7 +94,7 @@ class MyDataset(Dataset):
         path = self.image_path
         # Load image and from h5
         image = load_image(os.path.join(path, '%s.h5' % name), 'image')
-        mask = load_image(os.path.join(path, '%s_attribute_all.h5' % name), 'mask')
+        mask = load_image(os.path.join(path, '{}_{}.h5'.format(name, self.attribute)), 'mask')
 
         if self.train == 'train':
             if self.augment_list:

@@ -204,6 +204,7 @@ if __name__ == "__main__":
     arg = parser.add_argument
     arg('--model', type=str, default='vgg16', choices=['vgg16', 'resnet50', 'resnet152', 'inception_v3'])
     arg('--root', type=str, default='runs/debug')
+    arg('--N', type=int, default=1)
     arg('--batch-normalization', action='store_true')  # if --batch-normalization parameter then True
     arg('--pretrained', action='store_true')           # if --pretrained parameter then True
     arg('--lr', type=float, default=0.001)
@@ -211,7 +212,6 @@ if __name__ == "__main__":
     arg('--workers', type=int, default=1)
     arg('--augment-list', type=list, nargs='*', default=[])
     arg('--image-path', type=str, default='/home/irek/My_work/train/h5_224/')
-    arg('--mask-path', type=str, default='/home/irek/My_work/train/binary/')
     arg('--n-epochs', type=int, default=1)
     arg('--K-models', type=int, default=5)
     arg('--begin-number', type=int, default=20)
@@ -220,9 +220,14 @@ if __name__ == "__main__":
     arg('--representative-select-num', type=int, default=5)
     arg('--square-size', type=int, default=16)
     arg('--jaccard-weight', type=float, default=0.)
+    arg('--attribute', type=str, default='attribute_all', choices=['attribute_all',
+                                                                   'attribute_globules',
+                                                                   'attribute_milia_like_cyst',
+                                                                   'attribute_negative_network',
+                                                                   'attribute_pigment_network',
+                                                                   'attribute_streaks'])
     arg('--conv-learn-enabled', action='store_true')   # if --conv-learn-enabled parameter then True
     arg('--mode', type=str, default='simple', choices=['simple', 'classic_AL', 'grid_AL'])
-    arg('--pool-train', action='store_true')
     arg('--al-pool-train', action='store_true')
     arg('--jac_train', action='store_true')
     arg('--grid_train', action='store_true')
@@ -233,53 +238,43 @@ if __name__ == "__main__":
     root.mkdir(exist_ok=True, parents=True)
     log = root.joinpath('train.log').open('at', encoding='utf8')
 
-    if args.pool_train and args.mode == 'simple':
-        configs = {'model': ['vgg16', 'resnet50'],
-                   'batch_normalization': [True, False],
-                   'pretrained': [True, False]}
-        i = 0
-        for m in configs['model']:
-            for pretr in configs['pretrained']:
-                args.model = m
-                args.pretrained = pretr
-                if m == 'vgg16':
-                    for bn in configs['batch_normalization']:
-                        args.batch_normalization = bn
-                        root.joinpath('params' + str(i) + '.json').write_text(
-                            json.dumps(vars(args), indent=True, sort_keys=True))
-                        train(args)
-                        i += 1
-                else:
+    learning_rates = args.lr
+
+    for experiment in range(args.N):
+        for lr in learning_rates:
+            args.lr = lr
+            print(lr)
+            if args.mode == 'simple':
+                root.joinpath('params'+str(i)+'.json').write_text(
+                    json.dumps(vars(args), indent=True, sort_keys=True))
+                train(args)
+                i += 1
+            elif args.al_pool_train:
+                configs = {'mode': ['classic_AL', 'grid_AL']}
+                i = 0
+                for m in configs['mode']:
+                    args.mode = m
                     root.joinpath('params'+str(i)+'.json').write_text(
                         json.dumps(vars(args), indent=True, sort_keys=True))
                     train(args)
                     i += 1
-    elif args.al_pool_train:
-        configs = {'mode': ['classic_AL', 'grid_AL']}
-        i = 0
-        for m in configs['mode']:
-            args.mode = m
-            root.joinpath('params'+str(i)+'.json').write_text(
-                json.dumps(vars(args), indent=True, sort_keys=True))
-            train(args)
-            i += 1
-    elif args.jac_train:
-        configs = {'jaccard-weight': [0., 0.5, 1.]}
-        i = 0
-        for m in configs['jaccard-weight']:
-            args.jaccard_weight = m
-            root.joinpath('params' + str(i) + '.json').write_text(
-                json.dumps(vars(args), indent=True, sort_keys=True))
-            train(args)
-            i += 1
-    elif args.grid_train:
-        configs = {'square_size': [32, 8, 16]}
-        i = 0
-        for s in configs['square_size']:
-            args.square_size = s
-            root.joinpath('params' + str(i) + '.json').write_text(
-                json.dumps(vars(args), indent=True, sort_keys=True))
-            train(args)
-            i += 1
-    else:
-        train(args)
+            elif args.jac_train:
+                configs = {'jaccard-weight': [0., 0.5, 1.]}
+                i = 0
+                for m in configs['jaccard-weight']:
+                    args.jaccard_weight = m
+                    root.joinpath('params' + str(i) + '.json').write_text(
+                        json.dumps(vars(args), indent=True, sort_keys=True))
+                    train(args)
+                    i += 1
+            elif args.grid_train:
+                configs = {'square_size': [32, 8, 16]}
+                i = 0
+                for s in configs['square_size']:
+                    args.square_size = s
+                    root.joinpath('params' + str(i) + '.json').write_text(
+                        json.dumps(vars(args), indent=True, sort_keys=True))
+                    train(args)
+                    i += 1
+            else:
+                print('strange')
