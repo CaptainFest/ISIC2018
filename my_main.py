@@ -109,7 +109,7 @@ def train(args):
                     train_loader = make_loader(train_test_id, mask_ind, args, ids=annotated, train='train',
                                                shuffle=True)
                 n1 = len(train_loader)
-                print(1234)
+
                 for i, (train_image_batch, train_labels_batch, names) in enumerate(train_loader):
                     if i % 50 == 0:
                         print(f'\rBatch {i} / {n1} ', end='')
@@ -138,12 +138,11 @@ def train(args):
             epoch_time = time.time() - start_time
 
             train_metrics = metric.compute_train(loss, ep, epoch_time)
-            print('Epoch: {} Loss: {:.6f} Prec: {:.4f} Recall: {:.4f} F1: {:.4f} Time: {:.4f}'.format(
+            print('Epoch: {} Loss: {:.6f} Prec: {:.4f} Recall: {:.4f} Time: {:.4f}'.format(
                                                          train_metrics['epoch'],
                                                          train_metrics['loss'],
                                                          train_metrics['precision'],
                                                          train_metrics['recall'],
-                                                         train_metrics['f1_score'],
                                                          train_metrics['epoch_time']))
             metric.reset()
 
@@ -168,11 +167,10 @@ def train(args):
                     metric.update(outputs.detach().cpu().numpy(), valid_labels_batch.cpu().numpy())
 
             valid_metrics = metric.compute_valid(loss)
-            print('\t\t Loss: {:.6f} Prec: {:.4f} Recall: {:.4f} F1: {:.4f}'.format(
+            print('\t\t Loss: {:.6f} Prec: {:.4f} Recall: {:.4f}'.format(
                                                                  valid_metrics['loss'],
                                                                  valid_metrics['precision'],
-                                                                 valid_metrics['recall'],
-                                                                 valid_metrics['f1_score']))
+                                                                 valid_metrics['recall']))
             metric.reset()
             write_event(log, train_metrics=train_metrics, valid_metrics=valid_metrics)
             write_tensorboard(writer, train_metrics, valid_metrics, args)
