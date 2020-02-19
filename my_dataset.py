@@ -22,6 +22,14 @@ class MyDataset(Dataset):
         self.square_size = args.square_size
         self.mode = args.mode
         self.ids = ids
+        self.all_attributes = ['attribute_globules', 'attribute_milia_like_cyst', 'attribute_negative_network',
+                               'attribute_pigment_network', 'attribute_streaks']
+        self.index_ = 0
+        if self.attribute in self.all_attributes:
+            for i, val in enumerate(self.all_attributes):
+                if self.attribute == val:
+                    self.index_ = i
+
         if train == 'train' or train == 'active':
             if self.ids.size != 0:
                 self.labels_ids = self.labels_ids[self.train_test_id['Split'] == 'train'].iloc[self.ids, :].values.astype('uint8')
@@ -104,8 +112,10 @@ class MyDataset(Dataset):
             if index in self.ids:
                 mask.fill(0.)
         image_with_mask = np.dstack((image, mask))
-        labels = self.labels_ids[index, :]
-
+        if self.attribute == 'attribute_all':
+            labels = self.labels_ids[index, :]
+        else:
+            labels = self.labels_ids[index, self.index_]
         return image_with_mask, labels, name
 
 
@@ -229,9 +239,7 @@ def make_loader(train_test_id, labels_ids, args, ids=np.array([]), train=True,
                              ids=ids)
     data_loader = DataLoader(data_set,
                              batch_size=args.batch_size,
-                             shuffle=shuffle,
-                             num_workers=args.workers,
-                             pin_memory=torch.cuda.is_available()
+                             shuffle=shuffle
                              )
     return data_loader
 

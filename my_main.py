@@ -70,7 +70,7 @@ def train(args):
     bootstrap_models = {}
     optimizers = {}
 
-    device = 'cuda:0'
+    device = 'cuda'
     if args.cuda1:
         device = 'cuda:1'
 
@@ -109,6 +109,7 @@ def train(args):
                     train_loader = make_loader(train_test_id, mask_ind, args, ids=annotated, train='train',
                                                shuffle=True)
                 n1 = len(train_loader)
+                print(1234)
                 for i, (train_image_batch, train_labels_batch, names) in enumerate(train_loader):
                     if i % 50 == 0:
                         print(f'\rBatch {i} / {n1} ', end='')
@@ -121,6 +122,9 @@ def train(args):
 
                     output_probs = bootstrap_models[model_id](train_image_batch)
 
+                    if args.attribute != 'attribute_all':
+                        train_labels_batch = torch.reshape(train_labels_batch, (-1, 1))
+
                     loss = criterion(output_probs, train_labels_batch)
 
                     optimizers[model_id].zero_grad()
@@ -129,7 +133,7 @@ def train(args):
 
                     if model_id == 0:
                         outputs = torch.sigmoid(output_probs)
-                        metric.update(outputs, train_labels_batch)
+                        metric.update(outputs.detach().cpu().numpy(), train_labels_batch.cpu().numpy())
 
             epoch_time = time.time() - start_time
 
@@ -161,7 +165,7 @@ def train(args):
                     loss = criterion(output_probs, valid_labels_batch)
 
                     outputs = torch.sigmoid(output_probs)
-                    metric.update(outputs, valid_labels_batch)
+                    metric.update(outputs.detach().cpu().numpy(), valid_labels_batch.cpu().numpy())
 
             valid_metrics = metric.compute_valid(loss)
             print('\t\t Loss: {:.6f} Prec: {:.4f} Recall: {:.4f} F1: {:.4f}'.format(
@@ -207,9 +211,8 @@ if __name__ == "__main__":
     arg('--N', type=int, default=1)
     arg('--batch-normalization', action='store_true')  # if --batch-normalization parameter then True
     arg('--pretrained', action='store_true')           # if --pretrained parameter then True
-    arg('--lr', type=float, default=0.001)
+    arg('--lr', type=float, nargs='*', default=[0.001])
     arg('--batch-size', type=int, default=1)
-    arg('--workers', type=int, default=1)
     arg('--augment-list', type=list, nargs='*', default=[])
     arg('--image-path', type=str, default='/home/irek/My_work/train/h5_224/')
     arg('--n-epochs', type=int, default=1)
@@ -226,9 +229,8 @@ if __name__ == "__main__":
                                                                    'attribute_negative_network',
                                                                    'attribute_pigment_network',
                                                                    'attribute_streaks'])
-    arg('--conv-learn-enabled', action='store_true')   # if --conv-learn-enabled parameter then True
     arg('--mode', type=str, default='simple', choices=['simple', 'classic_AL', 'grid_AL'])
-    arg('--freezing', action='store_false')
+    arg('--freezing', action='store_true')
     arg('--al-pool-train', action='store_true')
     arg('--jac_train', action='store_true')
     arg('--grid_train', action='store_true')
@@ -246,6 +248,7 @@ if __name__ == "__main__":
             args.lr = lr
             print(lr)
             if args.mode == 'simple':
+                i = 0
                 root.joinpath('params'+str(i)+'.json').write_text(
                     json.dumps(vars(args), indent=True, sort_keys=True))
                 train(args)

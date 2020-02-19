@@ -15,9 +15,9 @@ class LossBinary:
         self.jaccard_weight = jaccard_weight
 
     def __call__(self, outputs, targets):
-
+        print(outputs.shape, targets.shape)
         loss = self.nll_loss(outputs, targets)
-
+        print(1)
         if self.jaccard_weight:
             eps = 1e-15
             jaccard_target = (targets == 1).float()

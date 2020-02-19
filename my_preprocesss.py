@@ -8,7 +8,7 @@ import os
 image_path = "/home/irek/My_work/train/data/"
 mask_path = "/home/irek/My_work/train/binary/"
 
-save_path = "/home/irek/My_work/train/h5_64/"
+save_path = "/home/irek/My_work/train/_/"
 
 if not os.path.exists(save_path):
     os.mkdir(save_path)
@@ -17,25 +17,29 @@ if not os.path.exists(save_path):
 def load_image(ind, img_id):
     print(f'\r{ind}', end='')
     ###############
-    print(img_id)
+    #print(img_id)
     ### load image
-    image_file = image_path + '%s.jpg' % img_id
-    img = load_img(image_file, target_size=(64,64), color_mode='rgb')  # this is a PIL image
-    img_np = img_to_array(img)
+    #image_file = image_path + '%s.jpg' % img_id
+    #img = load_img(image_file, target_size=(224,224), color_mode='rgb')  # this is a PIL image
+    #img_np = img_to_array(img)
     ### only 0-255 integers
-    img_np = img_np.astype(np.uint8)
-    hdf5_file = h5py.File(save_path + '%s.h5' % img_id, 'w')
-    hdf5_file.create_dataset('img', data=img_np, dtype=np.uint8)
-    hdf5_file.close()
+    #img_np = img_np.astype(np.uint8)
+    #hdf5_file = h5py.File(save_path + '%s.h5' % img_id, 'w')
+    #hdf5_file.create_dataset('img', data=img_np, dtype=np.uint8)
+    #hdf5_file.close()
     ################
 
     attr_types = ['globules', 'milia_like_cyst', 'negative_network', 'pigment_network', 'streaks']
     #masks = np.zeros(shape=(img_np.shape[0], img_np.shape[1], 5))
-    #for i, attr in enumerate(attr_types):
-    #    mask_file = mask_path + '%s_attribute_%s.png' % (img_id, attr)
-    #    m = load_img(mask_file, target_size=(299, 299), color_mode="grayscale")  # this is a PIL image
-    #    m_np = img_to_array(m)
-    #    masks[:, :, i] = m_np[:, :, 0]
+    for i, attr in enumerate(attr_types):
+        mask_file = mask_path + '%s_attribute_%s.png' % (img_id, attr)
+        m = load_img(mask_file, target_size=(224, 224), color_mode="grayscale")  # this is a PIL image
+        m_np = img_to_array(m)
+        m_np = (m_np / 255).astype('int8')
+        m_np[m_np == 0] = -1
+        hdf5_file = h5py.File(save_path + '%s_attribute_%s.h5' % (img_id, attr), 'w')
+        hdf5_file.create_dataset('img', data=m_np, dtype=np.int8)
+        hdf5_file.close()
 
     #masks = (masks / 255).astype('int8')
     #masks[masks == 0] = -1
