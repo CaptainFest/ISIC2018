@@ -30,6 +30,7 @@ def load_mask(image_path, img_id, attribute='pigment_network'):
     return mask_np
 
 
+
 def save_weights(model, model_id, model_path, ep, step, train_metrics, valid_metrics):
     torch.save({'model': model.state_dict(), 'model_id':model_id, 'epoch': ep, 'step': step, 'valid_loss': valid_metrics['loss1'], 'train_loss': train_metrics['loss1']},
                str(model_path)
