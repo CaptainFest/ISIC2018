@@ -1,0 +1,5 @@
+bin/**
+lib/**
+.idea/**
+.ipynb_checkpoints/**
+*.pyc
