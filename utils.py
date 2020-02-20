@@ -23,28 +23,28 @@ def load_image(file_name, type='image'):
 
 def write_tensorboard(writer, train_metrics, valid_metrics, args):
 
-    writer.add_scalars('loss', {'train/'+args.model+'/'+str(args.N)+'/'+str(args.lr):
-                                train_metrics['loss'],
-                                'valid/'+args.model+'/'+str(args.N)+'/'+str(args.lr):
-                                valid_metrics['loss']},
+    writer.add_scalars('loss', {'train/mask'+str(args.mask_use)+'/freeze'+str(args.freezing)+'/experiment'+str(args.N)+
+                                '/lr'+str(args.lr): train_metrics['loss'],
+                                'valid/mask'+str(args.mask_use)+'/freeze'+str(args.freezing)+'/experiment'+str(args.N)+
+                                '/lr'+str(args.lr): valid_metrics['loss']},
                        train_metrics['epoch'])
 
-    writer.add_scalars('precision', {'train/'+args.model+'/'+str(args.N)+'/'+str(args.lr):
-                                     train_metrics['precision'],
-                                     'valid/'+args.model+'/'+str(args.N)+'/'+str(args.lr):
-                                     valid_metrics['precision']},
+    writer.add_scalars('precision', {'train/mask'+str(args.mask_use)+'/freeze'+str(args.freezing)+'/experiment'
+                                     +str(args.N)+'/lr'+str(args.lr): train_metrics['precision'],
+                                     'valid/mask'+str(args.mask_use)+'/freeze'+str(args.freezing)+'/experiment'
+                                     +str(args.N)+'/lr'+str(args.lr): valid_metrics['precision']},
                        train_metrics['epoch'])
 
-    writer.add_scalars('recall', {'train/'+args.model+'/'+str(args.N)+'/'+str(args.lr):
-                                  train_metrics['recall'],
-                                  'valid/'+args.model+'/'+str(args.N)+'/'+str(args.lr):
-                                  valid_metrics['recall']},
+    writer.add_scalars('recall', {'train/mask'+str(args.mask_use)+'/freeze'+str(args.freezing)+'/experiment'+str(args.N)
+                                  +'/lr'+str(args.lr): train_metrics['recall'],
+                                  'valid/mask'+str(args.mask_use)+'/freeze'+str(args.freezing)+'/experiment'+str(args.N)
+                                  +'/lr'+str(args.lr): valid_metrics['recall']},
                        train_metrics['epoch'])
 
-    writer.add_scalars('accuracy', {'train/'+args.model+'/'+str(args.N)+'/'+str(args.lr):
-                                    train_metrics['accuracy'],
-                                    'valid/'+args.model+'/'+str(args.N)+'/'+str(args.lr):
-                                    valid_metrics['accuracy']},
+    writer.add_scalars('accuracy', {'train/mask'+str(args.mask_use)+'/freeze'+str(args.freezing)+'/experiment'
+                                    +str(args.N)+'/lr'+str(args.lr): train_metrics['accuracy'],
+                                    'valid/mask'+str(args.mask_use)+'/freeze'+str(args.freezing)+'/experiment'
+                                    +str(args.N)++'/lr'+str(args.lr): valid_metrics['accuracy']},
                        train_metrics['epoch'])
 
 

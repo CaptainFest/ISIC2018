@@ -123,7 +123,7 @@ def train(args, results):
 
                     output_probs = bootstrap_models[model_id](train_image_batch)
 
-                    if args.attribute != 'attribute_all':
+                    if isinstance(args.attribute, str) and (args.attribute != 'attribute_all'):
                         train_labels_batch = torch.reshape(train_labels_batch, (-1, 1))
 
                     loss = criterion(output_probs, train_labels_batch)
@@ -169,7 +169,7 @@ def train(args, results):
 
                     output_probs = bootstrap_models[0](valid_image_batch)
 
-                    if args.attribute != 'attribute_all':
+                    if isinstance(args.attribute, str) and (args.attribute != 'attribute_all'):
                         valid_labels_batch = torch.reshape(valid_labels_batch, (-1, 1))
                     loss = criterion(output_probs, valid_labels_batch)
 
@@ -224,6 +224,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     arg = parser.add_argument
     arg('--model', type=str, default='vgg16', choices=['vgg16', 'resnet50', 'resnet152', 'inception_v3'])
+    arg('--mask_use', action='store_true')
     arg('--root', type=str, default='runs/debug')
     arg('--N', type=int, default=1)
     arg('--batch-normalization', action='store_true')  # if --batch-normalization parameter then True
@@ -240,12 +241,7 @@ if __name__ == "__main__":
     arg('--representative-select-num', type=int, default=5)
     arg('--square-size', type=int, default=16)
     arg('--jaccard-weight', type=float, default=0.)
-    arg('--attribute', type=str, default='attribute_all', choices=['attribute_all',
-                                                                   'attribute_globules',
-                                                                   'attribute_milia_like_cyst',
-                                                                   'attribute_negative_network',
-                                                                   'attribute_pigment_network',
-                                                                   'attribute_streaks'])
+    arg('--attribute', type=str, nargs='*', default='attribute_all')
     arg('--mode', type=str, default='simple', choices=['simple', 'classic_AL', 'grid_AL'])
     arg('--freezing', action='store_true')
     arg('--al-pool-train', action='store_true')
@@ -263,46 +259,51 @@ if __name__ == "__main__":
     N = args.N
     learning_rates = args.lr
     freeze_modes = [True, False]
-    for mode in freeze_modes:
-        args.freezing = mode
-        for lr in learning_rates:
-            args.lr = lr
-            for experiment in range(N):
-                args.N = experiment
-                print('Заморозка {},  шаг обучения {}, номер эксперимента {}'.format(args.freezing, args.lr, args.N))
-                if args.mode == 'simple':
-                    i = 0
-                    root.joinpath('params'+str(i)+'.json').write_text(
-                        json.dumps(vars(args), indent=True, sort_keys=True))
-                    results = train(args, results)
-                    i += 1
-                elif args.al_pool_train:
-                    configs = {'mode': ['classic_AL', 'grid_AL']}
-                    i = 0
-                    for m in configs['mode']:
-                        args.mode = m
+    mask_use = [False, True]
+
+    for m_use in mask_use:
+        args.mask_use = m_use
+        for mode in freeze_modes:
+            args.freezing = mode
+            for lr in learning_rates:
+                args.lr = lr
+                for experiment in range(N):
+                    args.N = experiment
+                    print('Использование масок на трейне {} Заморозка {}, шаг обучения {}, '
+                          'номер эксперимента {}'.format(args.mask_use, args.freezing, args.lr, args.N))
+                    if args.mode == 'simple':
+                        i = 0
                         root.joinpath('params'+str(i)+'.json').write_text(
                             json.dumps(vars(args), indent=True, sort_keys=True))
                         results = train(args, results)
                         i += 1
-                elif args.jac_train:
-                    configs = {'jaccard-weight': [0., 0.5, 1.]}
-                    i = 0
-                    for m in configs['jaccard-weight']:
-                        args.jaccard_weight = m
-                        root.joinpath('params' + str(i) + '.json').write_text(
-                            json.dumps(vars(args), indent=True, sort_keys=True))
-                        results = train(args, results)
-                        i += 1
-                elif args.grid_train:
-                    configs = {'square_size': [32, 8, 16]}
-                    i = 0
-                    for s in configs['square_size']:
-                        args.square_size = s
-                        root.joinpath('params' + str(i) + '.json').write_text(
-                            json.dumps(vars(args), indent=True, sort_keys=True))
-                        results = train(args, results)
-                        i += 1
-                else:
-                    print('strange')
+                    elif args.al_pool_train:
+                        configs = {'mode': ['classic_AL', 'grid_AL']}
+                        i = 0
+                        for m in configs['mode']:
+                            args.mode = m
+                            root.joinpath('params'+str(i)+'.json').write_text(
+                                json.dumps(vars(args), indent=True, sort_keys=True))
+                            results = train(args, results)
+                            i += 1
+                    elif args.jac_train:
+                        configs = {'jaccard-weight': [0., 0.5, 1.]}
+                        i = 0
+                        for m in configs['jaccard-weight']:
+                            args.jaccard_weight = m
+                            root.joinpath('params' + str(i) + '.json').write_text(
+                                json.dumps(vars(args), indent=True, sort_keys=True))
+                            results = train(args, results)
+                            i += 1
+                    elif args.grid_train:
+                        configs = {'square_size': [32, 8, 16]}
+                        i = 0
+                        for s in configs['square_size']:
+                            args.square_size = s
+                            root.joinpath('params' + str(i) + '.json').write_text(
+                                json.dumps(vars(args), indent=True, sort_keys=True))
+                            results = train(args, results)
+                            i += 1
+                    else:
+                        print('strange')
     results.to_csv('resnet_all_res', index=False)

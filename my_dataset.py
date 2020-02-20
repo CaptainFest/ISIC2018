@@ -17,6 +17,7 @@ class MyDataset(Dataset):
         self.image_path = args.image_path
         self.pretrained = args.pretrained
         self.attribute = args.attribute
+        self.mask_use = args.mask_use
         self.augment_list = args.augment_list
         self.train = train
         self.square_size = args.square_size
@@ -24,11 +25,8 @@ class MyDataset(Dataset):
         self.ids = ids
         self.all_attributes = ['attribute_globules', 'attribute_milia_like_cyst', 'attribute_negative_network',
                                'attribute_pigment_network', 'attribute_streaks']
-        self.index_ = 0
-        if self.attribute in self.all_attributes:
-            for i, val in enumerate(self.all_attributes):
-                if self.attribute == val:
-                    self.index_ = i
+
+        self.indexes = [i for i, val in enumerate(self.all_attributes) for attr in self.attribute if attr == val]
 
         if train == 'train' or train == 'active':
             if self.ids.size != 0:
@@ -102,20 +100,31 @@ class MyDataset(Dataset):
         path = self.image_path
         # Load image and from h5
         image = load_image(os.path.join(path, '%s.h5' % name), 'image')
-        mask = load_image(os.path.join(path, '{}_{}.h5'.format(name, self.attribute)), 'mask')
+        if self.mask_use:
+            mask = np.array([load_image(os.path.join(path, '{}_{}.h5'.format(name, self.attribute)), 'mask')
+                             for attr in self.attribute])
+        else:
+            mask = image
 
         if self.train == 'train':
             if self.augment_list:
                 image, mask = self.transform_fn(image, mask)
 
-        if self.train == 'active':
-            if index in self.ids:
+        if self.mask_use:
+            if self.train == 'active':
+                if index in self.ids:
+                    mask.fill(0.)
+            elif self.train == 'valid':
                 mask.fill(0.)
-        image_with_mask = np.dstack((image, mask))
+            image_with_mask = np.dstack((image, mask))
+        else:
+            image_with_mask = image
+
         if self.attribute == 'attribute_all':
             labels = self.labels_ids[index, :]
         else:
-            labels = self.labels_ids[index, self.index_]
+            labels = np.array([self.labels_ids[index, ind] for ind in self.indexes])
+
         return image_with_mask, labels, name
 
 

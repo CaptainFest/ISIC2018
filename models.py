@@ -38,12 +38,16 @@ def create_model(args, device):
         for param in model.parameters():
             param.requires_grad = False
 
-    if args.attribute == 'attribute_all':
-        input_num = 8
-        out_shape = 5
+    if args.mask_use:
+        if args.attribute == 'attribute_all':
+            input_num = 8
+            out_shape = 5
+        else:
+            input_num = 3 + len(args.attribute)
+            out_shape = len(args.attribute)
     else:
-        input_num = 4
-        out_shape = 1
+        input_num = 3
+        out_shape = len(args.attribute)
 
     # channels replacement
     if args.model in ['resnet50', 'resnet152']:
