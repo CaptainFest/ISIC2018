@@ -5,6 +5,8 @@ from pathlib import Path
 import pandas as pd
 import numpy as np
 import json
+import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 import torch
 from torch.backends import cudnn
@@ -19,7 +21,7 @@ from Active import ActiveLearningTrainer
 from metrics import Metrics
 
 
-def train(args):
+def train(args, results):
 
     epoch = 0
 
@@ -52,7 +54,7 @@ def train(args):
         K_models = args.K_models
     train_loader = make_loader(train_test_id, mask_ind, args, annotated,  train='train', shuffle=True)
 
-    if True:
+    if False:
         print('--' * 10)
         print('check data')
         train_image, train_labels_ind, name = next(iter(train_loader))
@@ -95,7 +97,6 @@ def train(args):
         try:
             start_time = time.time()
             for model_id in range(K_models):
-
                 if args.pretrained:
                     if ep == 50:
                         for param in bootstrap_models[model_id].parameters():
@@ -139,18 +140,25 @@ def train(args):
 
             train_metrics = metric.compute_train(loss, ep, epoch_time)
             print('Epoch: {} Loss: {:.6f} Prec: {:.4f} Recall: {:.4f} Time: {:.4f}'.format(
-                                                         train_metrics['epoch'],
+                                                         ep,
                                                          train_metrics['loss'],
                                                          train_metrics['precision'],
                                                          train_metrics['recall'],
                                                          train_metrics['epoch_time']))
-            metric.reset()
+            results = results.append({'freeze_mode': args.freezing,
+                                      'lr': args.lr,
+                                      'exp': args.N,
+                                      'train_mode': 'train',
+                                      'epoch': ep,
+                                      'loss': train_metrics['loss'],
+                                      'prec': train_metrics['precision'],
+                                      'recall': train_metrics['recall']}, ignore_index=True)
 
+            metric.reset()
             ##################################### validation ###########################################
             valid_loader = make_loader(train_test_id, mask_ind, args, train='valid', shuffle=True)
             with torch.no_grad():
                 n2 = len(valid_loader)
-
                 for i, (valid_image_batch, valid_labels_batch, names) in enumerate(valid_loader):
                     if i == n2-1:
                         print(f'\r', end='')
@@ -161,6 +169,8 @@ def train(args):
 
                     output_probs = bootstrap_models[0](valid_image_batch)
 
+                    if args.attribute != 'attribute_all':
+                        valid_labels_batch = torch.reshape(valid_labels_batch, (-1, 1))
                     loss = criterion(output_probs, valid_labels_batch)
 
                     outputs = torch.sigmoid(output_probs)
@@ -171,10 +181,18 @@ def train(args):
                                                                  valid_metrics['loss'],
                                                                  valid_metrics['precision'],
                                                                  valid_metrics['recall']))
+
+            results = results.append({'freeze_mode': args.freezing,
+                                      'lr': args.lr,
+                                      'exp': args.N,
+                                      'train_mode': 'valid',
+                                      'epoch': ep,
+                                      'loss': valid_metrics['loss'],
+                                      'prec': valid_metrics['precision'],
+                                      'recall': valid_metrics['recall']}, ignore_index=True)
             metric.reset()
             write_event(log, train_metrics=train_metrics, valid_metrics=valid_metrics)
             write_tensorboard(writer, train_metrics, valid_metrics, args)
-
             scheduler.step(valid_metrics['loss'])
 
             if args.mode in ['classic_AL', 'grid_AL']:
@@ -198,6 +216,7 @@ def train(args):
         except KeyboardInterrupt:
             return
     writer.close()
+    return results
 
 
 if __name__ == "__main__":
@@ -239,44 +258,51 @@ if __name__ == "__main__":
     root.mkdir(exist_ok=True, parents=True)
     log = root.joinpath('train.log').open('at', encoding='utf8')
 
+    results = pd.DataFrame(columns=['freeze_mode', 'lr', 'exp', 'train_mode', 'epoch', 'loss', 'prec',
+                                    'recall'])
+    N = args.N
     learning_rates = args.lr
-
-    for experiment in range(args.N):
+    freeze_modes = [True, False]
+    for mode in freeze_modes:
+        args.freezing = mode
         for lr in learning_rates:
             args.lr = lr
-            print(lr)
-            if args.mode == 'simple':
-                i = 0
-                root.joinpath('params'+str(i)+'.json').write_text(
-                    json.dumps(vars(args), indent=True, sort_keys=True))
-                train(args)
-                i += 1
-            elif args.al_pool_train:
-                configs = {'mode': ['classic_AL', 'grid_AL']}
-                i = 0
-                for m in configs['mode']:
-                    args.mode = m
+            for experiment in range(N):
+                args.N = experiment
+                print('Заморозка {},  шаг обучения {}, номер эксперимента {}'.format(args.freezing, args.lr, args.N))
+                if args.mode == 'simple':
+                    i = 0
                     root.joinpath('params'+str(i)+'.json').write_text(
                         json.dumps(vars(args), indent=True, sort_keys=True))
-                    train(args)
+                    results = train(args, results)
                     i += 1
-            elif args.jac_train:
-                configs = {'jaccard-weight': [0., 0.5, 1.]}
-                i = 0
-                for m in configs['jaccard-weight']:
-                    args.jaccard_weight = m
-                    root.joinpath('params' + str(i) + '.json').write_text(
-                        json.dumps(vars(args), indent=True, sort_keys=True))
-                    train(args)
-                    i += 1
-            elif args.grid_train:
-                configs = {'square_size': [32, 8, 16]}
-                i = 0
-                for s in configs['square_size']:
-                    args.square_size = s
-                    root.joinpath('params' + str(i) + '.json').write_text(
-                        json.dumps(vars(args), indent=True, sort_keys=True))
-                    train(args)
-                    i += 1
-            else:
-                print('strange')
+                elif args.al_pool_train:
+                    configs = {'mode': ['classic_AL', 'grid_AL']}
+                    i = 0
+                    for m in configs['mode']:
+                        args.mode = m
+                        root.joinpath('params'+str(i)+'.json').write_text(
+                            json.dumps(vars(args), indent=True, sort_keys=True))
+                        results = train(args, results)
+                        i += 1
+                elif args.jac_train:
+                    configs = {'jaccard-weight': [0., 0.5, 1.]}
+                    i = 0
+                    for m in configs['jaccard-weight']:
+                        args.jaccard_weight = m
+                        root.joinpath('params' + str(i) + '.json').write_text(
+                            json.dumps(vars(args), indent=True, sort_keys=True))
+                        results = train(args, results)
+                        i += 1
+                elif args.grid_train:
+                    configs = {'square_size': [32, 8, 16]}
+                    i = 0
+                    for s in configs['square_size']:
+                        args.square_size = s
+                        root.joinpath('params' + str(i) + '.json').write_text(
+                            json.dumps(vars(args), indent=True, sort_keys=True))
+                        results = train(args, results)
+                        i += 1
+                else:
+                    print('strange')
+    results.to_csv('resnet_all_res', index=False)

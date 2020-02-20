@@ -29,18 +29,18 @@ class Metrics:
 
     def compute_valid(self, loss):
 
-        return {'loss': loss,
-                'accuracy': self.acc.result(),
-                'precision': self.prec.result(),
-                'recall': self.rec.result()
+        return {'loss': loss.detach().cpu().numpy(),
+                'accuracy': self.acc.result().cpu().numpy(),
+                'precision': self.prec.result().cpu().numpy(),
+                'recall': self.rec.result().cpu().numpy()
                 }
 
     def compute_train(self, loss, ep, epoch_time):
 
         return {'epoch': int(ep),
-                'loss': loss,
-                'accuracy': self.acc.result(),
-                'precision': self.prec.result(),
-                'recall': self.rec.result(),
+                'loss': loss.detach().cpu().numpy(),
+                'accuracy': self.acc.result().cpu().numpy(),
+                'precision': self.prec.result().cpu().numpy(),
+                'recall': self.rec.result().cpu().numpy(),
                 'epoch_time': epoch_time
                 }
