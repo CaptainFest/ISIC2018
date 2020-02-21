@@ -19,7 +19,7 @@ from my_dataset import make_loader
 from models import create_model
 from Active import ActiveLearningTrainer
 from metrics import Metrics
-import tensorflow as tf
+#import tensorflow as tf
 
 def train(args, results):
 
