@@ -220,7 +220,6 @@ def train(args, results):
 
 
 if __name__ == "__main__":
-    tf.compat.v1.enable_eager_execution()
 
     parser = argparse.ArgumentParser()
     arg = parser.add_argument

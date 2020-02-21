@@ -1,5 +1,6 @@
 #from ignite.metrics import Precision, Recall, Accuracy, MetricsLambda
 from tensorflow.keras.metrics import Accuracy, Precision, Recall
+import tensorflow as tf
 import torch
 
 def f1(r, p):
@@ -37,10 +38,11 @@ class Metrics:
 
     def compute_train(self, loss, ep, epoch_time):
 
+
         return {'epoch': int(ep),
                 'loss': loss.detach().cpu().numpy(),
-                'accuracy': self.acc.result().cpu().numpy(),
-                'precision': self.prec.result().cpu().numpy(),
-                'recall': self.rec.result().cpu().numpy(),
+                'accuracy': self.acc.result().eval(session=tf.compat.v1.Session()),
+                'precision': self.prec.result().eval(session=tf.compat.v1.Session()),
+                'recall': self.rec.result().eval(session=tf.compat.v1.Session()),
                 'epoch_time': epoch_time
                 }
