@@ -18,9 +18,9 @@ class Metrics:
     def update(self, outputs, labels_batch):
 
         outputs1 = (outputs > 0.5)
-        self.acc.update_state(outputs1, labels_batch)
-        self.prec.update_state(outputs1, labels_batch)
-        self.rec.update_state(outputs1, labels_batch)
+        self.acc.update_state(labels_batch, outputs1)
+        self.prec.update_state(labels_batch, outputs1)
+        self.rec.update_state(labels_batch, outputs1)
 
     def reset(self):
 
@@ -40,9 +40,9 @@ class Metrics:
 
 
         return {'epoch': int(ep),
-                'loss': loss.detach().cpu().numpy(),
-                'accuracy': self.acc.result().eval(session=tf.compat.v1.Session()),
-                'precision': self.prec.result().eval(session=tf.compat.v1.Session()),
-                'recall': self.rec.result().eval(session=tf.compat.v1.Session()),
+                'loss': loss.detach().numpy(),
+                'accuracy': self.acc.result().numpy(),
+                'precision': self.prec.result().numpy(),
+                'recall': self.rec.result().numpy(),
                 'epoch_time': epoch_time
                 }
