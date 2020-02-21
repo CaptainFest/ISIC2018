@@ -19,7 +19,8 @@ from my_dataset import make_loader
 from models import create_model
 from Active import ActiveLearningTrainer
 from metrics import Metrics
-#import tensorflow as tf
+import tensorflow as tf
+#from tensorflow.python.framework.ops import disable_eager_execution
 
 def train(args, results):
 
@@ -134,10 +135,10 @@ def train(args, results):
 
                     if model_id == 0:
                         outputs = torch.sigmoid(output_probs)
-                        metric.update(train_labels_batch.cpu().numpy(), outputs.detach().cpu().numpy())
+                        metric.update(outputs, train_labels_batch)
 
             epoch_time = time.time() - start_time
-
+            #print(tf.make_ndarray(tf.make_tensor_proto(metric.acc.result())))
             train_metrics = metric.compute_train(loss, ep, epoch_time)
             print('Epoch: {} Loss: {:.6f} Prec: {:.4f} Recall: {:.4f} Time: {:.4f}'.format(
                                                          ep,
@@ -145,6 +146,7 @@ def train(args, results):
                                                          train_metrics['precision'],
                                                          train_metrics['recall'],
                                                          train_metrics['epoch_time']))
+
             results = results.append({'freeze_mode': args.freezing,
                                       'lr': args.lr,
                                       'exp': args.N,
@@ -174,7 +176,7 @@ def train(args, results):
                     loss = criterion(output_probs, valid_labels_batch)
 
                     outputs = torch.sigmoid(output_probs)
-                    metric.update(outputs.detach().cpu().numpy(), valid_labels_batch.cpu().numpy())
+                    metric.update(outputs, valid_labels_batch)
 
             valid_metrics = metric.compute_valid(loss)
             print('\t\t Loss: {:.6f} Prec: {:.4f} Recall: {:.4f}'.format(
@@ -259,7 +261,7 @@ if __name__ == "__main__":
     N = args.N
     learning_rates = args.lr
     freeze_modes = [True, False]
-    mask_use = [False, True]
+    mask_use = [True]
 
     for m_use in mask_use:
         args.mask_use = m_use

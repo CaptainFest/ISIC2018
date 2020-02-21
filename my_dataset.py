@@ -50,9 +50,9 @@ class MyDataset(Dataset):
     def transform_fn(self, image, mask):
 
         image = array_to_img(image, data_format="channels_last")
-        mask_pil_array = [None] * mask.shape[-1]
-        for i in range(mask.shape[-1]):
-             mask_pil_array[i] = array_to_img(mask[:, :, i, np.newaxis], data_format="channels_last")
+        mask_pil_array = None * mask.shape[0]
+        for i, m in enumerate(mask):
+            mask_pil_array[i] = array_to_img(m, data_format="channels_last")
 
         if 'hflip' in self.augment_list:
             if random.random() > 0.5:
@@ -81,8 +81,10 @@ class MyDataset(Dataset):
                 image = TF.adjust_saturation(image, saturation_factor)
 
         image = img_to_array(image, data_format="channels_last")
-        for i in range(mask.shape[-1]):
-            mask[:, :, i] = img_to_array(mask_pil_array[i], data_format="channels_last")[:, :, 0].astype('uint8')
+        if self.mask_use:
+            mask = np.empty((image.shape[0], image.shape[1], len(self.attribute)))
+            for i in range(mask.shape[0]):
+                mask[:, :, i] = img_to_array(mask_pil_array[i], data_format="channels_last")[:, :, 0].astype('uint8')
 
         image = (image / 255.0).astype('float32')
         mask = (mask / 255.0).astype('uint8')
@@ -100,9 +102,10 @@ class MyDataset(Dataset):
         path = self.image_path
         # Load image and from h5
         image = load_image(os.path.join(path, '%s.h5' % name), 'image')
+
         if self.mask_use:
-            mask = np.array([load_image(os.path.join(path, '{}_{}.h5'.format(name, self.attribute)), 'mask')
-                             for attr in self.attribute])
+            mask = [load_image(os.path.join(path, '{}_{}.h5'.format(name, attr)), 'mask')
+                    for attr in enumerate(self.attribute)]
         else:
             mask = image
 
