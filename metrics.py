@@ -41,8 +41,8 @@ class Metrics:
 
         return {'epoch': int(ep),
                 'loss': loss.detach().numpy(),
-                'accuracy': self.acc.result().numpy(),
-                'precision': self.prec.result().numpy(),
-                'recall': self.rec.result().numpy(),
+                'accuracy': self.acc.result().detach().cpu().numpy(),
+                'precision': self.prec.result().detach().cpu().numpy(),
+                'recall': self.rec.result().detach().cpu().numpy(),
                 'epoch_time': epoch_time
                 }
