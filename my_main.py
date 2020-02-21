@@ -134,7 +134,7 @@ def train(args, results):
 
                     if model_id == 0:
                         outputs = torch.sigmoid(output_probs)
-                        metric.update(outputs.detach().cpu().numpy(), train_labels_batch.cpu().numpy())
+                        metric.update(train_labels_batch.numpy(), outputs.detach().numpy())
 
             epoch_time = time.time() - start_time
 

@@ -15,7 +15,7 @@ class Metrics:
         self.prec = Precision()
         self.rec = Recall()
 
-    def update(self, outputs, labels_batch):
+    def update(self, labels_batch, outputs):
 
         outputs1 = (outputs > 0.5)
         self.acc.update_state(labels_batch, outputs1)
