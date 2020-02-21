@@ -260,8 +260,8 @@ if __name__ == "__main__":
                                     'recall'])
     N = args.N
     learning_rates = args.lr
-    freeze_modes = [True, False]
-    mask_use = [True]
+    freeze_modes = [False, True]
+    mask_use = [True, False]
 
     for m_use in mask_use:
         args.mask_use = m_use
