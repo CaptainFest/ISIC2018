@@ -17,10 +17,9 @@ class Metrics:
 
     def update(self, labels_batch, outputs):
 
-        outputs1 = (outputs > 0.5)
-        self.acc.update_state(labels_batch, outputs1)
-        self.prec.update_state(labels_batch, outputs1)
-        self.rec.update_state(labels_batch, outputs1)
+        self.acc.update_state(labels_batch, outputs)
+        self.prec.update_state(labels_batch, outputs)
+        self.rec.update_state(labels_batch, outputs)
 
     def reset(self):
 
