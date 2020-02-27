@@ -1,5 +1,4 @@
 import os
-import torch
 import torchvision.transforms.functional as TF
 from keras.preprocessing.image import array_to_img, img_to_array
 from torch.utils.data import Dataset, DataLoader
@@ -121,10 +120,7 @@ class MyDataset(Dataset):
         else:
             image_with_mask = image
 
-        if self.attribute == 'attribute_all':
-            labels = self.labels_ids[index, :]
-        else:
-            labels = np.array([self.labels_ids[index, ind] for ind in self.indexes])
+        labels = np.array([self.labels_ids[index, ind] for ind in self.indexes])
 
         return image_with_mask, labels, name
 

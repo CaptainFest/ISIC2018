@@ -39,12 +39,8 @@ def create_model(args, device):
             param.requires_grad = False
 
     if args.mask_use:
-        if args.attribute == 'attribute_all':
-            input_num = 8
-            out_shape = 5
-        else:
-            input_num = 3 + len(args.attribute)
-            out_shape = len(args.attribute)
+        input_num = 3 + len(args.attribute)
+        out_shape = len(args.attribute)
     else:
         input_num = 3
         out_shape = len(args.attribute)

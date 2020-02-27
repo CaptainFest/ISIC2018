@@ -243,7 +243,7 @@ if __name__ == "__main__":
     arg('--representative-select-num', type=int, default=5)
     arg('--square-size', type=int, default=16)
     arg('--jaccard-weight', type=float, default=0.)
-    arg('--attribute', type=str, nargs='*', default='attribute_all')
+    arg('--attribute', type=str, nargs='*', default='attribute_negative_network')
     arg('--mode', type=str, default='simple', choices=['simple', 'classic_AL', 'grid_AL'])
     arg('--freezing', action='store_true')
     arg('--al-pool-train', action='store_true')
