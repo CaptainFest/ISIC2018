@@ -4,7 +4,7 @@ International Skin Imaging Collaboration (ISIC) 2018 Competition
 This algorithm compares vanila neural networks in multi-classification task using segmentation masks as additional chanels with using just image information.
 
 ## Data preparation
-my_preprocess.py module makes from original images and masks 
+my_preprocess.py module transforms original images and masks to h5py format
 
 1. Run shell prompt from root of the project.
 2. Execute command to make the script runnable for you
