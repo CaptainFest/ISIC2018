@@ -17,6 +17,7 @@ chmod u+x bash_scripts/prepare.sh
    3. */path/to/save/*
    4. *resize_size*
    5. *number_of_parallel_jobs*
+
 '''
 . bash_scripts/prepare.sh /home/irek/My_work/train/data/ /home/irek/My_work/train/binary/ /home/irek/My_work/train/ttt/ 224 12
 '''
